@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, SectionList, TouchableOpacity, Linking, Alert, TextInput, Modal,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, Linking, Alert, TextInput, Modal, ScrollView,
 } from 'react-native';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -17,34 +17,20 @@ const STATUS_COLOR = {
   'Đã hủy': '#9E9E9E',
 };
 
+const STATUS_TABS = ['Chờ shop', 'Chờ xác nhận', 'Đang giao', 'Đã giao', 'Tất cả'];
 const DATE_FILTERS = ['Hôm nay', 'Hôm qua', '7 ngày', 'Tất cả'];
 
 function isSameDay(d, ref) {
   return d.getDate() === ref.getDate() && d.getMonth() === ref.getMonth() && d.getFullYear() === ref.getFullYear();
 }
 
-const FINAL = ['Đã giao', 'Đã hủy'];
-
-function groupOrders(orders) {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const sorted = [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const active = sorted.filter(o => !FINAL.includes(o.status));
-  const todayDone = sorted.filter(o => FINAL.includes(o.status) && new Date(o.createdAt) >= today);
-  const older = sorted.filter(o => FINAL.includes(o.status) && new Date(o.createdAt) < today);
-  const sections = [];
-  if (active.length) sections.push({ title: 'Đang xử lý', dot: '#e65100', data: active });
-  if (todayDone.length) sections.push({ title: 'Hôm nay', dot: '#388e3c', data: todayDone });
-  if (older.length) sections.push({ title: `Đơn cũ hơn (${older.length})`, dot: '#9e9e9e', data: older, collapsible: true });
-  return sections;
-}
-
 export default function ShopOrdersScreen() {
   const { getShopOrders, confirmShopOrder, rejectOrder } = useApp();
   const { currentUser } = useAuth();
+  const [filter, setFilter] = useState('Chờ shop');
   const [dateFilter, setDateFilter] = useState('Hôm nay');
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [olderOpen, setOlderOpen] = useState(false);
 
   const allShopOrders = getShopOrders(currentUser.id);
 
@@ -52,7 +38,7 @@ export default function ShopOrdersScreen() {
   const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
   const sevenDaysAgo = new Date(now); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const orders = allShopOrders.filter(o => {
+  const byDate = allShopOrders.filter(o => {
     const d = o.createdAt?.toDate ? o.createdAt.toDate() : new Date(o.createdAt);
     if (dateFilter === 'Hôm nay') return isSameDay(d, now);
     if (dateFilter === 'Hôm qua') return isSameDay(d, yesterday);
@@ -60,7 +46,15 @@ export default function ShopOrdersScreen() {
     return true;
   });
 
+  const orders = filter === 'Tất cả'
+    ? [...byDate].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    : [...byDate].filter(o => {
+        if (filter === 'Đang giao') return ['Đang lấy hàng', 'Đã lấy hàng', 'Đang giao'].includes(o.status);
+        return o.status === filter;
+      }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
   const pendingCount = allShopOrders.filter(o => o.status === 'Chờ shop').length;
+  const totalFees = byDate.filter(o => o.status === 'Đã giao').reduce((s, o) => s + (o.shippingFee || 0), 0);
 
   const handleConfirm = (order) => {
     Alert.alert(
@@ -84,32 +78,6 @@ export default function ShopOrdersScreen() {
     setRejectReason('');
   };
 
-  const totalFees = orders.filter(o => o.status === 'Đã giao')
-    .reduce((s, o) => s + (o.shippingFee || 0), 0);
-
-  const sections = groupOrders(orders);
-  const displayedSections = sections.map(s =>
-    s.collapsible ? { ...s, data: olderOpen ? s.data : [] } : s
-  );
-
-  const renderSectionHeader = ({ section }) => {
-    if (section.collapsible) {
-      return (
-        <TouchableOpacity style={styles.sectionHeader} onPress={() => setOlderOpen(v => !v)}>
-          <View style={[styles.sectionDot, { backgroundColor: section.dot }]} />
-          <Text style={[styles.sectionTitle, { color: section.dot }]}>{section.title}</Text>
-          <Ionicons name={olderOpen ? 'chevron-up' : 'chevron-down'} size={16} color={section.dot} />
-        </TouchableOpacity>
-      );
-    }
-    return (
-      <View style={styles.sectionHeader}>
-        <View style={[styles.sectionDot, { backgroundColor: section.dot }]} />
-        <Text style={[styles.sectionTitle, { color: section.dot }]}>{section.title}</Text>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -120,6 +88,25 @@ export default function ShopOrdersScreen() {
         </Text>
       </View>
 
+      {/* Status tabs */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabBar} contentContainerStyle={styles.tabContent}>
+        {STATUS_TABS.map(s => {
+          const count = s === 'Tất cả' ? byDate.length
+            : s === 'Đang giao' ? byDate.filter(o => ['Đang lấy hàng', 'Đã lấy hàng', 'Đang giao'].includes(o.status)).length
+            : byDate.filter(o => o.status === s).length;
+          return (
+            <TouchableOpacity key={s} style={[styles.tab, filter === s && styles.tabActive]} onPress={() => setFilter(s)}>
+              <Text style={[styles.tabText, filter === s && styles.tabTextActive]}>{s}</Text>
+              {count > 0 && (
+                <View style={[styles.tabCount, filter === s && styles.tabCountActive]}>
+                  <Text style={[styles.tabCountText, filter === s && styles.tabCountTextActive]}>{count}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       {/* Date filter */}
       <View style={styles.dateRow}>
         {DATE_FILTERS.map(d => (
@@ -129,12 +116,10 @@ export default function ShopOrdersScreen() {
         ))}
       </View>
 
-      <SectionList
-        sections={displayedSections}
+      <FlatList
+        data={orders}
         keyExtractor={o => o.id}
         contentContainerStyle={styles.list}
-        renderSectionHeader={renderSectionHeader}
-        stickySectionHeadersEnabled={false}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -160,7 +145,6 @@ export default function ShopOrdersScreen() {
               <Text style={styles.infoText} numberOfLines={2}>{item.deliveryAddress}</Text>
             </View>
 
-            {/* Danh sách món */}
             {item.items?.length > 0 && (
               <View style={styles.itemsBox}>
                 {item.items.map((f, i) => (
@@ -178,7 +162,6 @@ export default function ShopOrdersScreen() {
 
             {item.note ? <Text style={styles.note}>📝 {item.note}</Text> : null}
 
-            {/* Lý do từ chối */}
             {item.status === 'Đã hủy' && item.cancelReason ? (
               <View style={styles.cancelBox}>
                 <Ionicons name="close-circle-outline" size={14} color='#F44336' />
@@ -186,7 +169,6 @@ export default function ShopOrdersScreen() {
               </View>
             ) : null}
 
-            {/* Nút Nhận / Từ chối cho đơn Chờ shop */}
             {item.status === 'Chờ shop' && (
               <View style={styles.actionRow}>
                 <TouchableOpacity
@@ -212,7 +194,6 @@ export default function ShopOrdersScreen() {
         }
       />
 
-      {/* Modal từ chối */}
       <Modal visible={!!rejectModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -247,14 +228,21 @@ const styles = StyleSheet.create({
   header: { backgroundColor: '#2196F3', padding: 16, paddingTop: 52 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 3 },
+  tabBar: { backgroundColor: '#fff', maxHeight: 52, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  tabContent: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
+  tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#F5F5F5', gap: 4 },
+  tabActive: { backgroundColor: '#2196F3' },
+  tabText: { fontSize: 12, color: COLORS.gray, fontWeight: '500' },
+  tabTextActive: { color: '#fff', fontWeight: 'bold' },
+  tabCount: { backgroundColor: COLORS.lightGray, borderRadius: 10, paddingHorizontal: 5, paddingVertical: 1 },
+  tabCountActive: { backgroundColor: 'rgba(255,255,255,0.3)' },
+  tabCountText: { fontSize: 10, color: COLORS.gray, fontWeight: 'bold' },
+  tabCountTextActive: { color: '#fff' },
   dateRow: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderBottomWidth: 1, borderBottomColor: COLORS.lightGray },
   dateChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 16, backgroundColor: COLORS.lightGray },
   dateChipActive: { backgroundColor: '#2196F3' },
   dateChipText: { fontSize: 12, color: COLORS.gray, fontWeight: '500' },
   dateChipTextActive: { color: '#fff', fontWeight: 'bold' },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 4 },
-  sectionDot: { width: 8, height: 8, borderRadius: 4 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', flex: 1 },
   list: { padding: 12, paddingBottom: 20 },
   card: { backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, elevation: 2 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },

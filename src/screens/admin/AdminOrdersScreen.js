@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, SectionList, TouchableOpacity,
-  Alert, Linking,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  Alert, ScrollView, Linking,
 } from 'react-native';
 import { useApp } from '../../context/AppContext';
 import { formatCurrency, formatDate, COLORS } from '../../utils/format';
 import { Ionicons } from '@expo/vector-icons';
 
-const STATUSES = ['Chờ shop', 'Chờ xác nhận', 'Đã xác nhận', 'Đang lấy hàng', 'Đã lấy hàng', 'Đang giao', 'Đã giao', 'Đã hủy'];
+const STATUSES = ['Tất cả', 'Chờ shop', 'Chờ xác nhận', 'Đã xác nhận', 'Đang lấy hàng', 'Đã lấy hàng', 'Đang giao', 'Đã giao', 'Đã hủy'];
 const STATUS_COLOR = {
   'Chờ shop': '#FF9800',
   'Chờ xác nhận': '#FFC107',
@@ -18,30 +18,21 @@ const STATUS_COLOR = {
   'Đã giao': '#4CAF50',
   'Đã hủy': '#9E9E9E',
 };
-const FINAL = ['Đã giao', 'Đã hủy'];
-
-function groupOrders(orders) {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const sorted = [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const active = sorted.filter(o => !FINAL.includes(o.status));
-  const todayDone = sorted.filter(o => FINAL.includes(o.status) && new Date(o.createdAt) >= today);
-  const older = sorted.filter(o => FINAL.includes(o.status) && new Date(o.createdAt) < today);
-  const sections = [];
-  if (active.length) sections.push({ title: 'Đang xử lý', dot: '#e65100', data: active });
-  if (todayDone.length) sections.push({ title: 'Hôm nay', dot: '#388e3c', data: todayDone });
-  if (older.length) sections.push({ title: `Đơn cũ hơn (${older.length})`, dot: '#9e9e9e', data: older, collapsible: true });
-  return sections;
-}
+const ALL_STATUSES = ['Chờ shop', 'Chờ xác nhận', 'Đã xác nhận', 'Đang lấy hàng', 'Đã lấy hàng', 'Đang giao', 'Đã giao', 'Đã hủy'];
 
 export default function AdminOrdersScreen() {
   const { allOrders, updateOrderStatus, confirmTransferPayment } = useApp();
-  const [olderOpen, setOlderOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('Tất cả');
 
   const pending = allOrders.filter(o => o.status === 'Chờ xác nhận' || o.status === 'Chờ shop').length;
 
+  const orders = filterStatus === 'Tất cả'
+    ? [...allOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    : [...allOrders].filter(o => o.status === filterStatus).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
   const nextStatus = (current) => {
-    const idx = STATUSES.indexOf(current);
-    return idx < STATUSES.length - 2 ? STATUSES[idx + 1] : null;
+    const idx = ALL_STATUSES.indexOf(current);
+    return idx < ALL_STATUSES.length - 2 ? ALL_STATUSES[idx + 1] : null;
   };
 
   const handleUpdateStatus = (order) => {
@@ -56,11 +47,9 @@ export default function AdminOrdersScreen() {
   const openGoogleMaps = (order) => {
     let url;
     if (order.deliveryLocation?.latitude && order.deliveryLocation?.longitude) {
-      // Có tọa độ GPS → điều hướng chính xác
       const { latitude, longitude } = order.deliveryLocation;
       url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
     } else if (order.deliveryAddress) {
-      // Không có GPS → tìm theo địa chỉ
       const encoded = encodeURIComponent(order.deliveryAddress);
       url = `https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`;
     } else {
@@ -79,29 +68,6 @@ export default function AdminOrdersScreen() {
     ]);
   };
 
-  const sections = groupOrders(allOrders);
-  const displayedSections = sections.map(s =>
-    s.collapsible ? { ...s, data: olderOpen ? s.data : [] } : s
-  );
-
-  const renderSectionHeader = ({ section }) => {
-    if (section.collapsible) {
-      return (
-        <TouchableOpacity style={styles.sectionHeader} onPress={() => setOlderOpen(v => !v)}>
-          <View style={[styles.sectionDot, { backgroundColor: section.dot }]} />
-          <Text style={[styles.sectionTitle, { color: section.dot }]}>{section.title}</Text>
-          <Ionicons name={olderOpen ? 'chevron-up' : 'chevron-down'} size={16} color={section.dot} />
-        </TouchableOpacity>
-      );
-    }
-    return (
-      <View style={styles.sectionHeader}>
-        <View style={[styles.sectionDot, { backgroundColor: section.dot }]} />
-        <Text style={[styles.sectionTitle, { color: section.dot }]}>{section.title}</Text>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -112,18 +78,32 @@ export default function AdminOrdersScreen() {
           )}
         </View>
         <View style={styles.countBadge}>
-          <Text style={styles.countText}>{allOrders.length}</Text>
+          <Text style={styles.countText}>{orders.length}</Text>
         </View>
       </View>
 
-      <SectionList
-        sections={displayedSections} keyExtractor={o => o.id}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar} contentContainerStyle={styles.filterContent}>
+        {STATUSES.map(s => {
+          const count = s === 'Tất cả' ? allOrders.length : allOrders.filter(o => o.status === s).length;
+          return (
+            <TouchableOpacity key={s} style={[styles.filterChip, filterStatus === s && styles.filterChipActive]} onPress={() => setFilterStatus(s)}>
+              <Text style={[styles.filterText, filterStatus === s && styles.filterTextActive]}>{s}</Text>
+              {count > 0 && (
+                <View style={[styles.countPill, filterStatus === s && styles.countPillActive]}>
+                  <Text style={[styles.countPillText, filterStatus === s && styles.countPillTextActive]}>{count}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      <FlatList
+        data={orders}
+        keyExtractor={o => o.id}
         contentContainerStyle={styles.list}
-        renderSectionHeader={renderSectionHeader}
-        stickySectionHeadersEnabled={false}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            {/* Header */}
             <View style={styles.cardHeader}>
               <View>
                 <Text style={styles.orderId}>Đơn #{item.id.slice(-6).toUpperCase()}</Text>
@@ -141,7 +121,6 @@ export default function AdminOrdersScreen() {
               </View>
             </View>
 
-            {/* Shipper info */}
             {item.shipperName && (
               <View style={styles.shipperRow}>
                 <Ionicons name="bicycle-outline" size={13} color="#FF9800" />
@@ -149,7 +128,6 @@ export default function AdminOrdersScreen() {
               </View>
             )}
 
-            {/* Items */}
             <View style={styles.itemsBox}>
               {item.items.map((f, i) => (
                 <View key={i} style={styles.foodRow}>
@@ -158,16 +136,15 @@ export default function AdminOrdersScreen() {
                     <Text style={styles.foodName}>{f.name}</Text>
                     {f.selectedToppings?.length > 0 && (
                       <Text style={styles.foodTopping}>
-                        Kèm: {f.selectedToppings.map(t => t.name.replace('Thêm ','')).join(', ')}
+                        Kèm: {f.selectedToppings.map(t => t.name.replace('Thêm ', '')).join(', ')}
                       </Text>
                     )}
                   </View>
-                  <Text style={styles.foodPrice}>{formatCurrency((f.price + (f.selectedToppings||[]).reduce((s,t)=>s+t.price,0)) * f.quantity)}</Text>
+                  <Text style={styles.foodPrice}>{formatCurrency((f.price + (f.selectedToppings || []).reduce((s, t) => s + t.price, 0)) * f.quantity)}</Text>
                 </View>
               ))}
             </View>
 
-            {/* Address + Navigate */}
             <View style={styles.addrBlock}>
               <View style={styles.addrRow}>
                 <Ionicons name="location-outline" size={14} color={COLORS.primary} />
@@ -190,7 +167,6 @@ export default function AdminOrdersScreen() {
               </View>
             ) : null}
 
-            {/* Total + date */}
             <View style={styles.cardFoot}>
               <View>
                 <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
@@ -203,30 +179,6 @@ export default function AdminOrdersScreen() {
               <Text style={styles.totalText}>{formatCurrency((item.total || 0) + (item.shippingFee ?? 15000))}</Text>
             </View>
 
-            {/* Xác nhận chuyển khoản - tạm ẩn */}
-            {false && item.paymentMethod === 'transfer' && (
-              <TouchableOpacity
-                style={[styles.transferBadge, item.transferStatus === 'confirmed' ? styles.transferDone : styles.transferPending]}
-                onPress={() => {
-                  if (item.transferStatus === 'confirmed') return;
-                  Alert.alert('Xác nhận đã nhận tiền?', `Đơn #${item.id.slice(-6).toUpperCase()} — ${formatCurrency((item.total || 0) + (item.shippingFee ?? 0))}`, [
-                    { text: 'Hủy' },
-                    { text: 'Đã nhận tiền', onPress: () => confirmTransferPayment(item.id) },
-                  ]);
-                }}
-              >
-                <Ionicons
-                  name={item.transferStatus === 'confirmed' ? 'checkmark-circle' : 'qr-code-outline'}
-                  size={16}
-                  color={item.transferStatus === 'confirmed' ? '#2E7D32' : '#E65100'}
-                />
-                <Text style={[styles.transferText, { color: item.transferStatus === 'confirmed' ? '#2E7D32' : '#E65100' }]}>
-                  {item.transferStatus === 'confirmed' ? 'Chuyển khoản đã xác nhận' : 'Chuyển khoản — Nhấn để xác nhận đã nhận tiền'}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Actions */}
             {item.status !== 'Đã giao' && item.status !== 'Đã hủy' && (
               <View style={styles.actions}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancel(item)}>
@@ -250,7 +202,6 @@ export default function AdminOrdersScreen() {
           </View>
         }
       />
-
     </View>
   );
 }
@@ -265,21 +216,26 @@ const styles = StyleSheet.create({
   pendingText: { fontSize: 13, color: COLORS.secondary, marginTop: 4 },
   countBadge: { backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
   countText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 4 },
-  sectionDot: { width: 8, height: 8, borderRadius: 4 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', flex: 1 },
+  filterBar: { backgroundColor: '#fff', maxHeight: 52, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  filterContent: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
+  filterChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#F5F5F5', gap: 4 },
+  filterChipActive: { backgroundColor: COLORS.primary },
+  filterText: { fontSize: 12, color: COLORS.gray, fontWeight: '500' },
+  filterTextActive: { color: '#fff', fontWeight: 'bold' },
+  countPill: { backgroundColor: COLORS.lightGray, borderRadius: 10, paddingHorizontal: 5, paddingVertical: 1 },
+  countPillActive: { backgroundColor: 'rgba(255,255,255,0.3)' },
+  countPillText: { fontSize: 10, color: COLORS.gray, fontWeight: 'bold' },
+  countPillTextActive: { color: '#fff' },
   list: { padding: 12, paddingBottom: 20 },
   card: { backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, elevation: 3 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
   orderId: { fontSize: 15, fontWeight: 'bold', color: COLORS.dark },
   customerName: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-  transferBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, padding: 10, marginBottom: 8 },
-  transferPending: { backgroundColor: '#FFF3E0' },
-  transferDone: { backgroundColor: '#E8F5E9' },
-  transferText: { fontSize: 13, fontWeight: '600', flex: 1 },
   customerPhone: { fontSize: 12, color: COLORS.primary, marginTop: 1 },
   statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusPillText: { fontSize: 12, fontWeight: 'bold' },
+  shipperRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF3E0', borderRadius: 8, padding: 6, marginBottom: 8 },
+  shipperText: { fontSize: 12, color: '#E65100', fontWeight: '600' },
   itemsBox: { backgroundColor: COLORS.background, borderRadius: 10, padding: 10, marginBottom: 10 },
   foodRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 4 },
   foodQty: { width: 28, fontSize: 13, fontWeight: 'bold', color: COLORS.primary },
@@ -311,6 +267,4 @@ const styles = StyleSheet.create({
   nextBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
   empty: { alignItems: 'center', paddingTop: 80 },
   emptyText: { color: COLORS.gray, fontSize: 15, marginTop: 12 },
-  shipperRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF3E0', borderRadius: 8, padding: 6, marginBottom: 8 },
-  shipperText: { fontSize: 12, color: '#E65100', fontWeight: '600' },
 });
