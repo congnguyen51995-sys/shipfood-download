@@ -696,6 +696,19 @@ body{background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;mar
   </div>
 </div>
 
+<!-- RATING MODAL -->
+<div class="modal-bg" id="ratingModal">
+  <div class="modal" style="max-width:360px">
+    <button class="modal-close" onclick="closeModal('ratingModal')">✕</button>
+    <div class="modal-title">⭐ Đánh giá đơn hàng</div>
+    <p style="font-size:13px;color:#888;margin-bottom:14px;text-align:center">Chia sẻ trải nghiệm của bạn</p>
+    <div id="ratingStars" style="display:flex;justify-content:center;gap:10px;margin-bottom:8px;font-size:36px"></div>
+    <div id="ratingLabel" style="text-align:center;font-size:15px;font-weight:700;color:#E65100;height:22px;margin-bottom:12px"></div>
+    <textarea id="ratingComment" rows="3" placeholder="Nhận xét thêm (tuỳ chọn)..." style="width:100%;border:1.5px solid #eee;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;resize:none;margin-bottom:14px"></textarea>
+    <button class="btn btn-primary" onclick="submitRating()" style="background:#FFC107;color:#fff">Gửi đánh giá</button>
+  </div>
+</div>
+
 <!-- APP DOWNLOAD BANNER -->
 <div class="app-banner" id="appBanner" style="display:none">
   <div class="app-banner-inner">
@@ -801,6 +814,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;mar
 
 <!-- SHOP ORDERS -->
 <div class="pg" id="pg-shop-orders">
+  <div class="filter-tabs" id="shopDateFilter" style="border-bottom:1px solid #f0f0f0"></div>
   <div class="filter-tabs" id="shopOrdersFilter"></div>
   <div id="shopOrdersBody"><div class="loading"><div class="spin"></div></div></div>
 </div>
@@ -844,6 +858,7 @@ let user=null, menuItems=[], allOrders=[], cart=[], restaurantInfo={};
 let editMenuId=null, admPeriod='day', shopPeriod='day';
 let modalItem=null, modalQty=1;
 let admOrderFilter='Tất cả', shopOrderFilter='Tất cả', shipOrderFilter='Tất cả', ordersFilter='Tất cả';
+let shopDateFilter='Hôm nay';
 let menuCatFilter='Tất cả';
 
 const ADMIN_EMAIL='thanhcong07195@gmail.com';
@@ -884,7 +899,7 @@ async function enterApp(){
   if(r==='customer'||r==='shop'){document.getElementById('cartBtn').style.display='flex';}
   if(r==='customer'){showPg('featured');setTimeout(showAppBanner,2000);}
   else if(r==='admin'){showPg('adm-orders');loadAdmOrders();}
-  else if(r==='shop'){showPg('shop-orders');loadShopOrders();}
+  else if(r==='shop'){await loadLinkedShopDoc();showPg('shop-orders');loadShopOrders();}
   else if(r==='shipper'){showPg('ship-orders');loadShipOrders();}
 }
 
@@ -1525,6 +1540,20 @@ function ocard(o,canEdit=false,isShipper=false){
     }
   }
 
+  // Rating section (customer view, Đã giao)
+  let ratingHtml='';
+  if(!canEdit&&!isShipper&&o.status==='Đã giao'){
+    if(o.rating){
+      const stars=[1,2,3,4,5].map(s=>s<=o.rating.stars?'★':'☆').join('');
+      ratingHtml=`<div style="background:#FFFDE7;border-radius:10px;padding:8px 12px;margin-top:8px;display:flex;align-items:center;gap:8px">
+        <span style="color:#FFC107;font-size:16px">${stars}</span>
+        ${o.rating.comment?`<span style="font-size:12px;color:#888;font-style:italic">"${o.rating.comment}"</span>`:''}
+      </div>`;
+    }else{
+      ratingHtml=`<button class="ocard-btn" style="margin-top:8px;background:#FFF8E1;color:#E65100;border:1px solid #FFC107;width:100%" onclick="openRatingModal('${o.id}')">⭐ Đánh giá đơn hàng</button>`;
+    }
+  }
+
   return `<div class="ocard">
     <div class="ocard-head">
       <div><div class="ocard-id">${canEdit?(o.customerName||'')+(o.customerPhone?' · '+o.customerPhone:''):'Đơn #'+o.id.slice(-6)}</div><div class="ocard-date">${date}</div></div>
@@ -1536,6 +1565,7 @@ function ocard(o,canEdit=false,isShipper=false){
     ${o.note?`<div style="font-size:12px;color:var(--gray);margin-bottom:6px">📝 ${o.note}</div>`:''}
     <div class="ocard-total">${fmt(o.totalAmount||0)}</div>
     ${actionsHtml}
+    ${ratingHtml}
   </div>`;
 }
 
@@ -1552,6 +1582,34 @@ function stepBar(status){
     ${i<SHIPPER_STEPS.length-1?`<div class="step-line" style="background:${i<cur?'#4CAF50':'#E0E0E0'}"></div>`:''}`
   ).join('')}</div>`;
 }
+
+// ── RATING ────────────────────────────────
+let _ratingOrderId=null, _ratingStars=5;
+const RATING_LABELS=['','Tệ','Không ổn','Bình thường','Tốt','Tuyệt vời!'];
+window.openRatingModal=function(orderId){
+  _ratingOrderId=orderId; _ratingStars=5;
+  document.getElementById('ratingComment').value='';
+  renderRatingStars(5);
+  openModal('ratingModal');
+};
+function renderRatingStars(val){
+  _ratingStars=val;
+  document.getElementById('ratingStars').innerHTML=[1,2,3,4,5].map(s=>
+    `<span style="cursor:pointer;color:${s<=val?'#FFC107':'#ddd'}" onclick="renderRatingStars(${s})">${s<=val?'★':'☆'}</span>`
+  ).join('');
+  document.getElementById('ratingLabel').textContent=RATING_LABELS[val]||'';
+}
+window.submitRating=async function(){
+  if(!_ratingOrderId)return;
+  const comment=document.getElementById('ratingComment').value.trim();
+  try{
+    await updateDoc(doc(db,'orders',_ratingOrderId),{rating:{stars:_ratingStars,comment,ratedAt:new Date().toISOString()}});
+    closeModal('ratingModal');
+    await loadGlobal();
+    showToast('Cảm ơn bạn đã đánh giá! ⭐');
+    ordersFilter=ordersFilter;loadMyOrders();
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
 
 window.updStatus=async function(id,status){
   if(!confirm(`Chuyển sang: "${status}"?`))return;
@@ -2051,12 +2109,51 @@ window.delUser=async function(id){
 
 // ── SHOP ORDERS ───────────────────────────
 window.loadShopOrders=function(){
+  // Date filter bar
+  const DATE_FILTERS=['Hôm nay','Hôm qua','7 ngày','Tất cả'];
+  document.getElementById('shopDateFilter').innerHTML=DATE_FILTERS.map(d=>
+    `<div class="ftab ${d===shopDateFilter?'on':''}" onclick="setShopDateFilter('${d}')">${d}</div>`
+  ).join('');
   renderOrdersFilter('shopOrdersFilter',shopOrderFilter,'setShopOrdFilter');
-  const orders=allOrders.filter(o=>o.shopId===user.id||true); // shop sees all for now
+  const now=new Date();
+  const yesterday=new Date(now);yesterday.setDate(yesterday.getDate()-1);
+  const sevenAgo=new Date(now);sevenAgo.setDate(sevenAgo.getDate()-7);
+  let orders=allOrders.filter(o=>o.shopId===user.id||true);
+  orders=orders.filter(o=>{
+    const d=new Date(o.createdAt);
+    if(shopDateFilter==='Hôm nay')return isSameDay(d,now);
+    if(shopDateFilter==='Hôm qua')return isSameDay(d,yesterday);
+    if(shopDateFilter==='7 ngày')return d>=sevenAgo;
+    return true;
+  });
+  // Today stats in header
+  const todayAll=allOrders.filter(o=>isSameDay(new Date(o.createdAt),now));
+  const todayDone=todayAll.filter(o=>o.status==='Đã giao');
+  const todayPending=todayAll.filter(o=>['Chờ xác nhận','Chờ shop'].includes(o.status));
+  const todayShipRev=todayDone.reduce((s,o)=>s+(o.shipFee||0),0);
+  const statsBar=`<div style="display:flex;gap:0;background:#fff;border-bottom:1px solid #f0f0f0;margin-bottom:4px">
+    <div style="flex:1;text-align:center;padding:10px 4px;border-right:1px solid #f5f5f5">
+      <div style="font-size:18px;font-weight:800;color:#2196F3">${todayAll.length}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">Hôm nay</div>
+    </div>
+    <div style="flex:1;text-align:center;padding:10px 4px;border-right:1px solid #f5f5f5">
+      <div style="font-size:18px;font-weight:800;color:#4CAF50">${todayDone.length}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">Đã giao</div>
+    </div>
+    <div style="flex:1;text-align:center;padding:10px 4px;border-right:1px solid #f5f5f5">
+      <div style="font-size:18px;font-weight:800;color:#FF9800">${todayPending.length}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">Chờ xác nhận</div>
+    </div>
+    <div style="flex:1;text-align:center;padding:10px 4px">
+      <div style="font-size:13px;font-weight:800;color:#FF6B35">${fmt(todayShipRev)}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">Ship nhận</div>
+    </div>
+  </div>`;
   const shown=shopOrderFilter==='Tất cả'?orders:orders.filter(o=>o.status===shopOrderFilter);
-  document.getElementById('shopOrdersBody').innerHTML=shown.length?shown.map(o=>ocard(o,true,false)).join(''):'<div class="empty"><div class="empty-icon">📋</div><p>Không có đơn hàng</p></div>';
+  document.getElementById('shopOrdersBody').innerHTML=statsBar+(shown.length?shown.map(o=>ocard(o,true,false)).join(''):'<div class="empty"><div class="empty-icon">📋</div><p>Không có đơn hàng</p></div>');
 };
-window.setShopOrdFilter=function(s){shopOrderFilter=s;renderOrdersFilter('shopOrdersFilter',s,'setShopOrdFilter');loadShopOrders();};
+window.setShopOrdFilter=function(s){shopOrderFilter=s;loadShopOrders();};
+window.setShopDateFilter=function(d){shopDateFilter=d;loadShopOrders()};
 
 // ── SHIPPER ORDERS ────────────────────────
 window.loadShipOrders=function(){
@@ -2107,23 +2204,118 @@ window.loadRevenue=function(elId,shopId,period){
 };
 
 // ── PROFILE ───────────────────────────────
+function isSameDay(d,ref){return d.getDate()===ref.getDate()&&d.getMonth()===ref.getMonth()&&d.getFullYear()===ref.getFullYear();}
+let _linkedShopDoc=null;
+async function loadLinkedShopDoc(){
+  if(user.role!=='shop')return;
+  try{
+    const q=query(collection(db,'linkedShops'),where('userId','==',user.id));
+    const s=await getDocs(q);
+    _linkedShopDoc=s.empty?null:{id:s.docs[0].id,...s.docs[0].data()};
+  }catch{}
+}
+window.toggleShopOpen=async function(){
+  if(!_linkedShopDoc)return;
+  const newVal=_linkedShopDoc.shopOpen===false?true:false;// toggle
+  try{
+    await updateDoc(doc(db,'linkedShops',_linkedShopDoc.id),{shopOpen:newVal});
+    _linkedShopDoc.shopOpen=newVal;
+    renderProfile();
+    showToast(newVal?'✅ Quán đang mở cửa':'🔴 Đã tạm đóng cửa');
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
+window.saveShopInfo=async function(){
+  const desc=document.getElementById('shopDescInput')?.value.trim()||'';
+  const avatarFile=document.getElementById('shopAvatarFile');
+  let avatar=_linkedShopDoc?.avatar||null;
+  if(avatarFile?.files[0]){
+    const reader=new FileReader();
+    await new Promise(r=>{reader.onload=e=>{avatar=e.target.result;r();};reader.readAsDataURL(avatarFile.files[0]);});
+  }
+  if(!_linkedShopDoc)return;
+  try{
+    await updateDoc(doc(db,'linkedShops',_linkedShopDoc.id),{description:desc,avatar:avatar||null});
+    _linkedShopDoc.description=desc;_linkedShopDoc.avatar=avatar;
+    renderProfile();showToast('✅ Đã lưu thông tin quán');
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
+function shopProfileExtra(){
+  const isOpen=_linkedShopDoc?.shopOpen!==false;
+  const now=new Date();
+  const todayAll=allOrders.filter(o=>isSameDay(new Date(o.createdAt),now));
+  const todayDone=todayAll.filter(o=>o.status==='Đã giao');
+  const avatar=_linkedShopDoc?.avatar;
+  const desc=_linkedShopDoc?.description||'';
+  return `
+    <!-- Open/close toggle -->
+    <div class="prow" style="cursor:default">
+      <div>
+        <div style="font-weight:700">Trạng thái quán</div>
+        <div style="font-size:12px;color:${isOpen?'#388e3c':'#c62828'};margin-top:2px">${isOpen?'🟢 Đang mở cửa':'🔴 Đang đóng cửa'}</div>
+      </div>
+      <button onclick="toggleShopOpen()" style="padding:8px 16px;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;background:${isOpen?'#ffebee':'#e8f5e9'};color:${isOpen?'#c62828':'#388e3c'}">
+        ${isOpen?'Tạm đóng cửa':'Mở cửa lại'}
+      </button>
+    </div>
+    <!-- Today stats -->
+    <div style="background:#fff;margin:0 0 8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">📊 Hôm nay</div>
+      <div style="display:flex;gap:0">
+        <div style="flex:1;text-align:center;border-right:1px solid #f0f0f0">
+          <div style="font-size:20px;font-weight:800;color:#2196F3">${todayAll.length}</div>
+          <div style="font-size:10px;color:#888;margin-top:2px">Tổng đơn</div>
+        </div>
+        <div style="flex:1;text-align:center;border-right:1px solid #f0f0f0">
+          <div style="font-size:20px;font-weight:800;color:#4CAF50">${todayDone.length}</div>
+          <div style="font-size:10px;color:#888;margin-top:2px">Đã giao</div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div style="font-size:13px;font-weight:800;color:#FF6B35">${fmt(todayDone.reduce((s,o)=>s+(o.shipFee||0),0))}</div>
+          <div style="font-size:10px;color:#888;margin-top:2px">Ship nhận</div>
+        </div>
+      </div>
+    </div>
+    <!-- Avatar + description -->
+    <div style="background:#fff;margin:0 0 8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">🏪 Hình ảnh & mô tả quán</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="width:64px;height:64px;border-radius:50%;background:#2196F3;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;position:relative">
+          ${avatar?`<img src="${avatar}" style="width:100%;height:100%;object-fit:cover" />`:'🏪'}
+        </div>
+        <div style="flex:1">
+          <label style="display:block;font-size:12px;font-weight:700;color:#888;margin-bottom:6px">Ảnh đại diện quán</label>
+          <input type="file" id="shopAvatarFile" accept="image/*" style="font-size:13px;width:100%" />
+        </div>
+      </div>
+      <label style="display:block;font-size:12px;font-weight:700;color:#888;margin-bottom:6px">Mô tả quán</label>
+      <textarea id="shopDescInput" rows="2" placeholder="Giới thiệu quán, món ngon, giờ mở cửa..." style="width:100%;border:1.5px solid #eee;border-radius:10px;padding:10px;font-size:14px;outline:none;resize:none;margin-bottom:10px">${desc}</textarea>
+      <button onclick="saveShopInfo()" class="btn btn-primary btn-sm" style="width:100%">💾 Lưu thông tin</button>
+    </div>
+    <!-- GPS -->
+    <div class="prow" onclick="setShopLocation()">
+      <span>📍 Vị trí quán</span>
+      <span style="font-size:12px;color:${user.location?'#388e3c':'var(--gray)'}">${user.location?'✅ Đã đặt vị trí':'Chưa đặt › Cần để tính phí ship'}</span>
+    </div>
+  `;
+}
+
 function renderProfile(){
   const el=document.getElementById('profileBody');
   const init=user.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   const rl={admin:'Admin',shop:'Shop liên kết',shipper:'Shipper',customer:'Khách hàng'};
+  const avatar=_linkedShopDoc?.avatar;
   el.innerHTML=`
     <div class="pcard">
-      <div class="pavatar">${init}</div>
-      <div class="pname">${user.name}</div>
+      <div class="pavatar" style="${avatar?'background:transparent;overflow:hidden;padding:0;':''}">
+        ${avatar?`<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`:(user.role==='shop'?'🏪':init)}
+      </div>
+      <div class="pname">${user.shopName||user.name}</div>
+      ${_linkedShopDoc?.description?`<div class="psub" style="padding:0 16px;line-height:1.4">${_linkedShopDoc.description}</div>`:''}
       <div class="psub">${rl[user.role]||user.role}</div>
       <div class="psub">${user.phone||user.email||''}</div>
-      ${user.shopName?`<div class="psub">🏪 ${user.shopName}</div>`:''}
     </div>
     ${user.role==='customer'?`<div class="prow" onclick="showPg('orders')"><span>📦 Đơn hàng của tôi</span><span>›</span></div>`:''}
-    ${user.role==='shop'?`<div class="prow" onclick="setShopLocation()">
-      <span>📍 Vị trí quán</span>
-      <span style="font-size:12px;color:${user.location?'#388e3c':'var(--gray)'}">${user.location?'✅ Đã đặt vị trí':'Chưa đặt › Cần để tính phí ship'}</span>
-    </div>`:''}
+    ${user.role==='shop'?shopProfileExtra():''}
     <div style="padding:0 12px"><button class="btn btn-red" onclick="doLogout()">🚪 Đăng xuất</button></div>
     ${user.role!=='admin'?`
     <div style="padding:4px 12px"><button class="btn" style="background:none;border:1.5px solid var(--primary);color:var(--primary);font-weight:700" onclick="showChangePw()">🔑 Đổi mật khẩu</button></div>
