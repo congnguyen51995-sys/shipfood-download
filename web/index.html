@@ -741,37 +741,11 @@ body{background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;mar
 
 <!-- PAGES -->
 <!-- CUSTOMER FEATURED -->
-<div class="pg" id="pg-featured">
-  <div class="feat-header">
-    <div class="feat-greeting" id="featGreeting">Xin chào!</div>
-    <div class="feat-status"><div class="feat-dot" id="featDot"></div><span id="featStatus"></span></div>
-  </div>
-  <div class="feat-banner">
-    <span style="font-size:28px">🏪</span>
-    <div class="feat-banner-info">
-      <div class="feat-banner-name" id="featShopName">ShipFood</div>
-      <div class="feat-banner-addr" id="featShopAddr"></div>
-    </div>
-    <button class="feat-banner-btn" onclick="showPg('menu')">Xem menu →</button>
-  </div>
-  <div class="section"><div class="sec-title" style="padding:4px 0 8px">Danh mục</div></div>
-  <div class="cat-row" id="catRow"></div>
-  <div class="section">
-    <div class="section-hd"><span class="section-title" id="suggestTitle">⏰ Gợi ý theo giờ</span></div>
-    <div class="h-scroll" id="suggestRow"></div>
-  </div>
-  <div class="section">
-    <div class="section-hd">
-      <span class="section-title">🔥 Món bán chạy</span>
-      <button class="section-link" onclick="showPg('menu')">Xem tất cả</button>
-    </div>
-    <div id="hotGrid" class="menu-grid" style="padding:0"></div>
-  </div>
-  <div class="promobar" style="margin-top:12px">
-    <div class="promobar-icon">🛵</div>
-    <div><div class="promobar-title">Giao hàng tận nơi</div><div class="promobar-sub">Phí ship từ 5.000đ · Phạm vi 10 km</div></div>
-  </div>
-  <div style="height:16px"></div>
+<div class="pg" id="pg-featured"></div>
+
+<!-- CUSTOMER SHOPS -->
+<div class="pg" id="pg-shops">
+  <div id="shopsBody"><div class="loading"><div class="spin"></div></div></div>
 </div>
 
 <!-- CUSTOMER MENU -->
@@ -873,6 +847,8 @@ let shopDateFilter='Hôm nay';
 let menuCatFilter='Tất cả';
 let _linkedShopsData=[];
 let _rejectOrderId=null;
+let linkedShops=[];
+let _selectedShopId=null;
 
 const ADMIN_EMAIL='thanhcong07195@gmail.com';
 const STATUSES=['Chờ xác nhận','Đã xác nhận','Đang lấy hàng','Đã lấy hàng','Đang giao','Đã giao','Đã hủy'];
@@ -973,11 +949,13 @@ function setupMenuListener(){
 }
 
 async function loadGlobal(){
-  const[oSnap,riSnap,uSnap]=await Promise.all([
+  const[oSnap,riSnap,uSnap,lsSnap]=await Promise.all([
     getDocs(collection(db,'orders')),
     getDoc(doc(db,'settings','restaurant')).catch(()=>null),
     getDocs(query(collection(db,'users'),where('role','==','shop'))),
+    getDocs(collection(db,'linkedShops')).catch(()=>({docs:[]})),
   ]);
+  linkedShops=lsSnap.docs.map(d=>({id:d.id,...d.data()}));
   // menu is kept live by setupMenuListener — fetch once for initial load if not yet done
   if(!menuItems.length){
     const mSnap=await getDocs(collection(db,'menu'));
@@ -1026,6 +1004,7 @@ const NAVS={
   customer:[
     {id:'featured',icon:'🏠',label:'Trang chủ',pg:'featured'},
     {id:'menu',icon:'🍽️',label:'Thực đơn',pg:'menu'},
+    {id:'shops',icon:'🏪',label:'Quán',pg:'shops'},
     {id:'orders',icon:'📦',label:'Đơn hàng',pg:'orders'},
     {id:'profile',icon:'👤',label:'Tài khoản',pg:'profile'},
   ],
@@ -1081,6 +1060,7 @@ window.showPg=function(name){
   if(name==='shop-revenue'){shopPeriod='day';renderPeriodRow('shopPeriodRow','shop');loadRevenue('shopRevenueBody',user.id,shopPeriod);}
   if(name==='ship-orders'){shipOrderFilter='Tất cả';loadShipOrders();}
   if(name==='cart')renderCart();
+  if(name==='shops'){_selectedShopId=null;loadShopsPage();}
 };
 window.goCart=function(){showPg('cart');};
 window.reload=async function(){await loadGlobal();const cur=document.querySelector('.pg.on');if(cur)showPg(cur.id.replace('pg-',''));};
@@ -1204,40 +1184,231 @@ function showE(el,msg){el.textContent=msg;el.style.display='block';}
 
 // ── FEATURED ─────────────────────────────
 function renderFeatured(){
+  const el=document.getElementById('pg-featured');
   const now=new Date();const h=now.getHours();
   const greet=h<11?'Buổi sáng':h<14?'Buổi trưa':h<18?'Buổi chiều':'Buổi tối';
-  document.getElementById('featGreeting').textContent=`${greet} tốt lành, ${user.name}! 👋`;
   const ri=restaurantInfo;
-  const open_h=(ri.openTime||'07:00').split(':').map(Number);
-  const close_h=(ri.closeTime||'22:00').split(':').map(Number);
+  const [oh,om]=(ri.openTime||'07:00').split(':').map(Number);
+  const [ch,cm]=(ri.closeTime||'22:00').split(':').map(Number);
   const cur=h*60+now.getMinutes();
-  const isOpen=cur>=open_h[0]*60+open_h[1]&&cur<close_h[0]*60+close_h[1];
-  document.getElementById('featDot').style.background=isOpen?'#69F0AE':'#FF5252';
-  document.getElementById('featStatus').textContent=isOpen?`Đang mở cửa · ${ri.openTime||'07:00'}–${ri.closeTime||'22:00'}`:'Đã đóng cửa';
-  document.getElementById('featShopName').textContent=ri.name||'ShipFood';
-  document.getElementById('featShopAddr').textContent=ri.address||'';
+  const isOpen=cur>=oh*60+om&&cur<ch*60+cm;
+  const deliveredCount=allOrders.filter(o=>o.status==='Đã giao').length;
 
-  // Categories
-  document.getElementById('catRow').innerHTML=CATS.slice(1).map(c=>
-    `<div class="cat-chip" onclick="showPg('menu');setMenuCat('${c}')">
-      <div class="cat-chip-icon">${CAT_ICONS[c]||'🍽️'}</div>
-      <div class="cat-chip-label">${c}</div>
-    </div>`
-  ).join('');
+  // Active order for this customer
+  const ACTIVE_ST=['Chờ shop','Chờ xác nhận','Đã xác nhận','Đang lấy hàng','Đã lấy hàng','Đang giao'];
+  const ACT_COLOR={'Chờ shop':'#FF9800','Chờ xác nhận':'#2196F3','Đã xác nhận':'#9C27B0','Đang lấy hàng':'#FF5722','Đã lấy hàng':'#795548','Đang giao':'#4CAF50'};
+  const activeOrder=user?.role==='customer'?allOrders.find(o=>o.customerId===user.id&&ACTIVE_ST.includes(o.status)):null;
 
-  // Suggest by time
-  const sugCats=h<11?['Bún','Phở','Bánh mì']:h<14?['Cơm','Phở','Bún']:h<18?['Đồ uống','Tráng miệng']:['Đồ ăn','Cơm'];
-  const title=h<11?'🌅 Bữa sáng gợi ý':h<14?'☀️ Bữa trưa gợi ý':h<18?'🌤 Bữa xế gợi ý':'🌙 Bữa tối gợi ý';
-  document.getElementById('suggestTitle').textContent=title;
-  let sug=menuItems.filter(m=>m.available!==false&&sugCats.includes(m.category));
-  if(sug.length<3)sug=menuItems.filter(m=>m.available!==false).slice(0,4);
-  document.getElementById('suggestRow').innerHTML=sug.slice(0,4).map(i=>mcardH(i)).join('');
+  // Recent items (last 3 unique delivered)
+  const recentItems=(()=>{
+    if(user?.role!=='customer')return[];
+    const done=allOrders.filter(o=>o.customerId===user.id&&o.status==='Đã giao').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    const seen=new Set();const res=[];
+    for(const o of done){for(const it of(o.items||[])){if(!seen.has(it.name)){seen.add(it.name);res.push(it);if(res.length>=3)return res;}}}
+    return res;
+  })();
 
   // Hot items
   const cnt={};allOrders.forEach(o=>o.items?.forEach(i=>{cnt[i.id]=(cnt[i.id]||0)+(i.qty||i.quantity||1);}));
-  const hot=menuItems.filter(m=>m.available!==false).sort((a,b)=>(cnt[b.id]||0)-(cnt[a.id]||0)).slice(0,4);
-  document.getElementById('hotGrid').innerHTML=hot.map(i=>mgcard(i)).join('');
+  const hotItems=menuItems.filter(m=>m.available!==false).sort((a,b)=>(cnt[b.id]||0)-(cnt[a.id]||0)).slice(0,6);
+
+  // Top rank
+  const rk={};allOrders.forEach(o=>o.items?.forEach(i=>{if(!rk[i.name])rk[i.name]=0;rk[i.name]+=(i.qty||i.quantity||1);}));
+  const topRank=Object.entries(rk).map(([name,qty])=>({name,qty})).sort((a,b)=>b.qty-a.qty).slice(0,5);
+
+  // New shop items
+  const byShop={};
+  menuItems.filter(m=>m.shopId&&m.available!==false&&m.createdAt).forEach(m=>{
+    if(!byShop[m.shopId]||new Date(m.createdAt)>new Date(byShop[m.shopId].createdAt))byShop[m.shopId]=m;
+  });
+  const newShopItems=Object.values(byShop).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,4);
+
+  // Suggested by time
+  const sugCats=h<11?['Bún','Phở','Bánh mì']:h<14?['Cơm','Phở','Bún']:h<18?['Đồ uống','Tráng miệng','Bánh mì']:['Đồ ăn','Cơm','Đồ uống'];
+  const sugTitle=h<11?'🌅 Bữa sáng gợi ý':h<14?'☀️ Bữa trưa gợi ý':h<18?'🌤 Bữa xế gợi ý':'🌙 Bữa tối gợi ý';
+  let suggested=menuItems.filter(m=>m.available!==false&&sugCats.includes(m.category));
+  if(suggested.length<3)suggested=menuItems.filter(m=>m.available!==false).slice(0,4);
+  suggested=suggested.slice(0,4);
+
+  const cartN=cart.reduce((s,i)=>s+i.qty,0);
+
+  el.innerHTML=`
+    <!-- Orange header -->
+    <div style="background:var(--primary);padding:16px 16px 14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:700;color:#fff">${greet} tốt lành, ${user?.name||'Khách'}! 👋</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <div style="width:8px;height:8px;border-radius:4px;background:${isOpen?'#69F0AE':'#FF5252'}"></div>
+            <span style="font-size:12px;color:rgba(255,255,255,.85)">${isOpen?`Đang mở cửa · ${ri.openTime||'07:00'}–${ri.closeTime||'22:00'}`:'Đã đóng cửa'}</span>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:5px">🛵 Đã giao ${deliveredCount}+ đơn · ⚡ Giao trong 30 phút · ⭐ Uy tín</div>
+        </div>
+        <button onclick="goCart()" style="position:relative;background:rgba(255,255,255,.15);border:none;cursor:pointer;padding:8px;border-radius:12px">
+          <span style="font-size:22px">🛒</span>
+          ${cartN>0?`<div style="position:absolute;top:-4px;right:-4px;background:#222;border-radius:9px;min-width:18px;height:18px;font-size:10px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 3px">${cartN}</div>`:''}
+        </button>
+      </div>
+    </div>
+
+    <!-- Search bar -->
+    <div style="padding:10px 12px 6px;background:var(--bg)">
+      <div style="background:#fff;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 1px 6px rgba(0,0,0,.08)">
+        <span style="color:#bbb;font-size:16px">🔍</span>
+        <input id="featSearchInput" placeholder="Tìm món ăn..." oninput="featSearchChange(this.value)"
+          style="border:none;outline:none;flex:1;font-size:14px;color:#222;background:transparent"/>
+        <span id="featSearchClear" onclick="featSearchClear()" style="display:none;cursor:pointer;color:#bbb;font-size:18px;line-height:1">✕</span>
+      </div>
+    </div>
+
+    <!-- Search results (shown when typing) -->
+    <div id="featSearchResults" style="display:none;background:#fff;margin:0 12px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.12);max-height:50vh;overflow-y:auto"></div>
+
+    <!-- Main content (hidden when searching) -->
+    <div id="featMain">
+      ${activeOrder?`
+      <div style="background:#fff;margin:8px 12px 0;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-left:4px solid var(--primary);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="showPg('orders')">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+          <div style="width:10px;height:10px;border-radius:5px;background:${ACT_COLOR[activeOrder.status]||'var(--primary)'};flex-shrink:0"></div>
+          <div style="min-width:0">
+            <div style="font-size:13px;font-weight:700">${activeOrder.status}</div>
+            <div style="font-size:11px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(activeOrder.items||[]).map(i=>i.name).join(', ')}</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--primary);font-weight:600;flex-shrink:0;margin-left:8px">Theo dõi ›</div>
+      </div>`:''}
+
+      ${recentItems.length?`
+      <div style="margin-top:14px">
+        <div style="font-size:15px;font-weight:700;padding:0 14px;margin-bottom:8px">🔄 Đặt lại nhanh</div>
+        ${recentItems.map(item=>{
+          const mi=menuItems.find(m=>m.name===item.name&&m.available!==false);
+          return `<div style="display:flex;align-items:center;background:#fff;margin:0 12px 8px;border-radius:14px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,.07);gap:12px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
+              <div style="font-size:11px;color:#888;margin-top:2px">${fmt(item.price)}</div>
+            </div>
+            <button ${!mi?'disabled':''} onclick="${mi?`quickAdd('${mi.id}')`:''}" style="display:flex;align-items:center;gap:5px;padding:7px 13px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:${mi?'pointer':'default'};background:${mi?'var(--primary)':'#ccc'};color:#fff;white-space:nowrap">
+              🔄 ${mi?'Đặt lại':'Hết'}
+            </button>
+          </div>`;
+        }).join('')}
+      </div>`:''}
+
+      <!-- Danh mục -->
+      <div style="margin-top:14px">
+        <div style="font-size:15px;font-weight:700;padding:0 14px;margin-bottom:8px">Danh mục</div>
+        <div style="display:flex;overflow-x:auto;padding:0 12px 4px;gap:10px;scrollbar-width:none">
+          ${[{l:'Cơm',e:'🍚'},{l:'Phở',e:'🍜'},{l:'Bún',e:'🍝'},{l:'Bánh mì',e:'🥖'},{l:'Đồ uống',e:'🧋'},{l:'Tráng miệng',e:'🍮'},{l:'Đồ ăn',e:'🍽️'}].map(c=>`
+            <div onclick="showPg('menu');setMenuCat('${c.l}')" style="display:flex;flex-direction:column;align-items:center;background:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 1px 6px rgba(0,0,0,.08);cursor:pointer;min-width:64px;flex-shrink:0">
+              <div style="font-size:22px">${c.e}</div>
+              <div style="font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap">${c.l}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      ${newShopItems.length?`
+      <div style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;margin-bottom:8px">
+          <div style="font-size:15px;font-weight:700">🆕 Món mới từ quán</div>
+          <button onclick="showPg('shops')" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer">Vào quán ›</button>
+        </div>
+        <div style="display:flex;overflow-x:auto;padding:0 12px 4px;gap:10px;scrollbar-width:none">
+          ${newShopItems.map(i=>`<div class="mcard" onclick="openItemModal('${i.id}')">
+            <div class="mcard-img">${i.image?`<img src="${i.image}" onerror="this.style.display='none'"/>`:(i.emoji||'🍽️')}</div>
+            <div class="mcard-body">
+              <div style="font-size:10px;color:#2196F3;font-weight:700;margin-bottom:2px">${i.shopName||''}</div>
+              <div class="mcard-name">${i.name}</div>
+              <div class="mcard-foot"><div class="mcard-price">${fmt(i.price)}</div><button class="mcard-add" onclick="event.stopPropagation();quickAdd('${i.id}')">+</button></div>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+
+      ${suggested.length?`
+      <div style="margin-top:14px">
+        <div style="font-size:15px;font-weight:700;padding:0 14px;margin-bottom:8px">${sugTitle}</div>
+        <div style="display:flex;overflow-x:auto;padding:0 12px 4px;gap:10px;scrollbar-width:none">
+          ${suggested.map(i=>mcardH(i)).join('')}
+        </div>
+      </div>`:''}
+
+      ${hotItems.length?`
+      <div style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;margin-bottom:8px">
+          <div style="font-size:15px;font-weight:700">🔥 Món bán chạy</div>
+          <button onclick="showPg('menu')" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer">Xem tất cả ›</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px;margin-bottom:10px">
+          ${hotItems.slice(0,2).map(i=>mgcard(i)).join('')}
+        </div>
+        <div style="display:flex;overflow-x:auto;padding:0 12px 4px;gap:10px;scrollbar-width:none">
+          ${hotItems.slice(2).map(i=>mcardH(i)).join('')}
+        </div>
+      </div>`:''}
+
+      ${topRank.length?`
+      <div style="margin-top:14px;margin-bottom:4px">
+        <div style="font-size:15px;font-weight:700;padding:0 14px;margin-bottom:8px">🏆 Bảng xếp hạng món</div>
+        <div style="background:#fff;border-radius:14px;margin:0 12px;box-shadow:0 1px 6px rgba(0,0,0,.08);overflow:hidden">
+          ${topRank.map((item,i)=>{
+            const medal=i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#E0E0E0';
+            const tc=i<3?'#fff':'#888';
+            return `<div onclick="showPg('menu')" style="display:flex;align-items:center;padding:12px 14px;${i>0?'border-top:1px solid #F5F5F5':''};gap:10px;cursor:pointer">
+              <div style="width:28px;height:28px;border-radius:14px;background:${medal};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <span style="font-size:11px;font-weight:700;color:${tc}">#${i+1}</span>
+              </div>
+              <span style="flex:1;font-size:13px;font-weight:600">${item.name}</span>
+              <span style="font-size:12px;color:#aaa">${item.qty} đơn</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`:''}
+
+      <div style="background:var(--primary)15;border-radius:14px;margin:14px 12px 0;padding:14px;display:flex;align-items:center;gap:12px;border:1px solid var(--primary)30">
+        <span style="font-size:28px">🛵</span>
+        <div>
+          <div style="font-size:14px;font-weight:700">Giao hàng tận nơi</div>
+          <div style="font-size:12px;color:#888;margin-top:2px">Phí ship từ 5.000đ · Phạm vi 10 km</div>
+        </div>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+  `;
 }
+
+// ── FEATURED SEARCH ───────────────────────
+window.featSearchChange=function(q){
+  const clearBtn=document.getElementById('featSearchClear');
+  const results=document.getElementById('featSearchResults');
+  const main=document.getElementById('featMain');
+  if(clearBtn)clearBtn.style.display=q?'block':'none';
+  if(!q){results.style.display='none';if(main)main.style.display='block';return;}
+  if(main)main.style.display='none';
+  const found=menuItems.filter(m=>m.available!==false&&(
+    m.name?.toLowerCase().includes(q.toLowerCase())||
+    m.category?.toLowerCase().includes(q.toLowerCase())||
+    (m.description||'').toLowerCase().includes(q.toLowerCase())
+  ));
+  results.style.display='block';
+  if(!found.length){results.innerHTML='<div class="empty" style="padding:24px 0"><div class="empty-icon">🔍</div><p>Không tìm thấy món "'+q+'"</p></div>';return;}
+  results.innerHTML=found.map(i=>`<div onclick="openItemModal('${i.id}')" style="display:flex;align-items:center;padding:10px 14px;border-top:1px solid #f5f5f5;gap:10px;cursor:pointer">
+    <div style="width:48px;height:48px;border-radius:10px;background:#f5f5f5;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px">
+      ${i.image?`<img src="${i.image}" style="width:100%;height:100%;object-fit:cover" onerror="this.textContent='🍽️'"/>`:(i.emoji||'🍽️')}
+    </div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.name}</div>
+      <div style="font-size:12px;color:#888;margin-top:2px">${i.category||''}</div>
+    </div>
+    <div style="font-size:14px;font-weight:700;color:var(--primary);flex-shrink:0">${fmt(i.price)}</div>
+    <button class="mcard-add" onclick="event.stopPropagation();quickAdd('${i.id}')">+</button>
+  </div>`).join('');
+};
+window.featSearchClear=function(){
+  const inp=document.getElementById('featSearchInput');
+  if(inp)inp.value='';
+  featSearchChange('');
+};
 
 // Mini card horizontal
 function mcardH(i){
@@ -2670,6 +2841,7 @@ const DESK_NAV={
   customer:[
     {id:'featured',icon:'🏠',label:'Trang chủ'},
     {id:'menu',icon:'🍜',label:'Thực đơn'},
+    {id:'shops',icon:'🏪',label:'Quán liên kết'},
     {id:'orders',icon:'📦',label:'Đơn của tôi'},
     {id:'profile',icon:'👤',label:'Tài khoản'},
   ],
@@ -2735,6 +2907,72 @@ function updateSidebarCart(){
 window.addEventListener('resize',()=>{
   if(user)setupSidebar();
 });
+
+// ── SHOPS PAGE ────────────────────────────
+window.loadShopsPage=function(){
+  const el=document.getElementById('shopsBody');
+  if(!el)return;
+  if(_selectedShopId){
+    const shop=linkedShops.find(s=>s.id===_selectedShopId);
+    if(!shop){_selectedShopId=null;loadShopsPage();return;}
+    const items=menuItems.filter(m=>m.shopId===shop.userId&&m.available!==false);
+    el.innerHTML=`
+      <div style="background:#2196F3;padding:14px 16px;display:flex;align-items:center;gap:10px">
+        <button onclick="_selectedShopId=null;loadShopsPage()" style="background:rgba(255,255,255,.2);border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:18px;color:#fff;flex-shrink:0">←</button>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:16px;font-weight:700;color:#fff">${shop.name||'Shop'}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">${shop.address||shop.description||'Shop liên kết'}</div>
+        </div>
+        <button onclick="goCart()" style="background:rgba(255,255,255,.2);border:none;border-radius:10px;padding:8px;cursor:pointer;font-size:20px">🛒</button>
+      </div>
+      <div class="searchbar" style="margin:10px 12px"><span>🔍</span><input placeholder="Tìm món trong quán..." oninput="filterShopItems('${shop.id}',this.value)" style="border:none;outline:none;flex:1;font-size:14px;background:transparent"/></div>
+      <div id="shopItemsGrid" class="menu-grid" style="padding:8px">
+        ${items.length?items.map(i=>mgcard(i)).join(''):'<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🍽️</div><p>Quán chưa có thực đơn</p></div>'}
+      </div>
+    `;
+    return;
+  }
+  // Shop list
+  if(!linkedShops.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">🏪</div><p>Chưa có quán liên kết</p></div>';return;
+  }
+  el.innerHTML=`
+    <div style="background:#2196F3;padding:16px">
+      <div style="font-size:18px;font-weight:700;color:#fff">Quán liên kết</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">${linkedShops.length} quán đang hoạt động</div>
+    </div>
+    <div style="padding:12px">
+      ${linkedShops.map(shop=>{
+        const itemCount=menuItems.filter(m=>m.shopId===shop.userId&&m.available!==false).length;
+        return `<div onclick="selectShop('${shop.id}')" style="display:flex;align-items:center;background:#fff;border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,.07);gap:12px;cursor:pointer">
+          <div style="width:56px;height:56px;border-radius:28px;background:#2196F3;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;overflow:hidden;color:#fff">
+            ${shop.avatar?`<img src="${shop.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:28px"/>`:' 🏪'}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <div style="font-size:15px;font-weight:700">${shop.name||'Shop'}</div>
+              ${shop.shopOpen===false?'<div style="background:#F443361A;border-radius:8px;padding:2px 6px;font-size:10px;color:#F44336;font-weight:700">Đóng cửa</div>':''}
+            </div>
+            ${shop.description?`<div style="font-size:12px;color:#666;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shop.description}</div>`:''}
+            ${shop.address?`<div style="font-size:12px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ${shop.address}</div>`:''}
+            <div style="display:inline-flex;align-items:center;gap:4px;background:#E3F2FD;padding:3px 8px;border-radius:10px;margin-top:6px">
+              <span style="font-size:11px;color:#2196F3;font-weight:600">🍽️ ${itemCount} món</span>
+            </div>
+          </div>
+          <span style="color:#ccc;font-size:18px">›</span>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+};
+window.selectShop=function(id){_selectedShopId=id;loadShopsPage();};
+window.filterShopItems=function(shopId,q){
+  const shop=linkedShops.find(s=>s.id===shopId);if(!shop)return;
+  let items=menuItems.filter(m=>m.shopId===shop.userId&&m.available!==false);
+  if(q)items=items.filter(m=>m.name.toLowerCase().includes(q.toLowerCase()));
+  const el=document.getElementById('shopItemsGrid');
+  if(el)el.innerHTML=items.length?items.map(i=>mgcard(i)).join(''):'<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🔍</div><p>Không tìm thấy món</p></div>';
+};
 
 // ── SHOP ORDER CONFIRM/REJECT ─────────────
 window.confirmShopOrder=async function(id){
