@@ -709,6 +709,17 @@ body{background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;mar
   </div>
 </div>
 
+<!-- REJECT ORDER MODAL -->
+<div class="modal-bg" id="rejectModal">
+  <div class="modal" style="max-width:360px">
+    <button class="modal-close" onclick="closeModal('rejectModal')">✕</button>
+    <div class="modal-title">❌ Từ chối đơn hàng</div>
+    <p style="font-size:13px;color:#888;margin-bottom:14px;text-align:center">Nhập lý do từ chối (tuỳ chọn)</p>
+    <textarea id="rejectReasonInput" rows="3" placeholder="VD: Hết nguyên liệu, quán đang bận..." style="width:100%;border:1.5px solid #eee;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;resize:none;margin-bottom:14px"></textarea>
+    <button class="btn btn-red" onclick="submitReject()">❌ Từ chối đơn</button>
+  </div>
+</div>
+
 <!-- APP DOWNLOAD BANNER -->
 <div class="app-banner" id="appBanner" style="display:none">
   <div class="app-banner-inner">
@@ -847,7 +858,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;mar
 
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getFirestore,collection,getDocs,addDoc,deleteDoc,updateDoc,query,where,doc,getDoc,onSnapshot,orderBy}
+import{getFirestore,collection,getDocs,addDoc,deleteDoc,updateDoc,setDoc,query,where,doc,getDoc,onSnapshot,orderBy}
   from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const fb=initializeApp({apiKey:"AIzaSyA3tjBHdFhvUrOzTZQwYYAshxjjxp3uL9g",authDomain:"shipfood-f43b8.firebaseapp.com",projectId:"shipfood-f43b8",storageBucket:"shipfood-f43b8.firebasestorage.app",messagingSenderId:"664916425769",appId:"1:664916425769:web:c8e0f9ccf06d3643443038"});
@@ -860,6 +871,8 @@ let modalItem=null, modalQty=1;
 let admOrderFilter='Tất cả', shopOrderFilter='Tất cả', shipOrderFilter='Tất cả', ordersFilter='Tất cả';
 let shopDateFilter='Hôm nay';
 let menuCatFilter='Tất cả';
+let _linkedShopsData=[];
+let _rejectOrderId=null;
 
 const ADMIN_EMAIL='thanhcong07195@gmail.com';
 const STATUSES=['Chờ xác nhận','Đã xác nhận','Đang lấy hàng','Đã lấy hàng','Đang giao','Đã giao','Đã hủy'];
@@ -1058,7 +1071,7 @@ window.showPg=function(name){
   if(name==='featured')renderFeatured();
   if(name==='menu')renderMenuPage();
   if(name==='orders'){ordersFilter='Tất cả';loadMyOrders();}
-  if(name==='profile')renderProfile();
+  if(name==='profile'){renderProfile();if(user&&user.role==='admin')setTimeout(loadAdminLinkedShops,0);}
   if(name==='adm-orders'){admOrderFilter='Tất cả';loadAdmOrders();}
   if(name==='adm-menu')loadAdmMenu();
   if(name==='adm-users')loadAdmUsers();
@@ -1433,6 +1446,18 @@ async function renderCart(){
       <label style="margin-top:10px">📝 Ghi chú</label>
       <input id="dNote" placeholder="Ít đá, không hành..."/>
     </div>
+    ${restaurantInfo.accountNumber?`
+    <div style="background:#fff;border-radius:14px;padding:14px;margin:0 0 12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px">💳 Thanh toán chuyển khoản</div>
+      <div style="text-align:center;margin-bottom:8px">
+        <img src="https://img.vietqr.io/image/${restaurantInfo.bankBin||'970436'}-${restaurantInfo.accountNumber}-compact2.png?amount=${total}&addInfo=ShipFood&accountName=${encodeURIComponent(restaurantInfo.accountName||'')}"
+          style="max-width:220px;width:100%;border-radius:12px;border:1px solid #eee"
+          onerror="this.style.display='none'" alt="QR chuyển khoản"/>
+      </div>
+      <div style="font-size:13px;font-weight:700;text-align:center">${restaurantInfo.bankName||''} · ${restaurantInfo.accountNumber}</div>
+      <div style="font-size:12px;color:#666;text-align:center;margin-top:2px">${restaurantInfo.accountName||''}</div>
+      <div style="font-size:11px;color:#888;text-align:center;margin-top:6px;background:#FFF8E1;border-radius:8px;padding:6px">📱 Quét mã QR trước khi đặt hàng</div>
+    </div>`:''}
     <div class="cart-footer">
       <button class="btn btn-primary" id="placeOrderBtn" onclick="placeOrder()">Đặt hàng • ${fmt(total)}</button>
     </div>
@@ -1508,7 +1533,15 @@ function ocard(o,canEdit=false,isShipper=false){
   const date=fmtDate(o.createdAt);
   const items=(o.items||[]).map(i=>`${i.emoji||''}${i.name} x${i.qty||i.quantity||1}`).join(', ');
   let actionsHtml='';
-  if(canEdit){
+  if(canEdit&&o.status==='Chờ shop'){
+    // Shop accept/reject
+    actionsHtml=`<div class="ocard-actions">
+      <button class="ocard-btn obtn-primary" onclick="confirmShopOrder('${o.id}')">✅ Nhận đơn</button>
+      <button class="ocard-btn obtn-red" onclick="openRejectModal('${o.id}')">❌ Từ chối</button>
+      ${o.deliveryAddress?`<button class="ocard-btn obtn-map" onclick="openMaps('${encodeURIComponent(o.deliveryAddress||'')}',${o.deliveryLocation?.latitude||0},${o.deliveryLocation?.longitude||0})">🗺️ Maps</button>`:''}
+      ${o.customerPhone?`<button class="ocard-btn obtn-phone" onclick="callPhone('${o.customerPhone}')">📞 Gọi</button>`:''}
+    </div>`;
+  }else if(canEdit){
     const next=STATUSES[si+1];
     const canCancel=si<2;
     actionsHtml=`<div class="ocard-actions">
@@ -1520,6 +1553,11 @@ function ocard(o,canEdit=false,isShipper=false){
   }
   if(isShipper&&SHIPPER_STEPS.includes(o.status)){
     actionsHtml=`<div style="margin:10px 0">${stepBar(o.status)}</div>`+actionsHtml;
+  }
+  // Shipper payment collection toggle
+  if(isShipper&&o.status==='Đã giao'){
+    const collected=o.paymentCollected===true;
+    actionsHtml+=`<button class="ocard-btn" style="margin-top:8px;background:${collected?'#E8F5E9':'#FFF3E0'};color:${collected?'#2E7D32':'#E65100'};border:1px solid ${collected?'#81C784':'#FFB74D'};width:100%;justify-content:center" onclick="togglePaymentCollected('${o.id}',${!collected})">${collected?'✅ Đã thu tiền ship':'💵 Chưa thu tiền ship — Nhấn để đánh dấu'}</button>`;
   }
   // Shop pickup info for shipper
   let shopPickupHtml='';
@@ -2314,8 +2352,31 @@ function renderProfile(){
       <div class="psub">${rl[user.role]||user.role}</div>
       <div class="psub">${user.phone||user.email||''}</div>
     </div>
-    ${user.role==='customer'?`<div class="prow" onclick="showPg('orders')"><span>📦 Đơn hàng của tôi</span><span>›</span></div>`:''}
+    ${user.role==='customer'?(()=>{
+      const myOrders=allOrders.filter(o=>o.customerId===user.id);
+      const myDone=myOrders.filter(o=>o.status==='Đã giao');
+      const myActive=myOrders.filter(o=>!['Đã giao','Đã hủy'].includes(o.status));
+      return `<div style="background:#fff;margin:0 0 8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">📊 Thống kê đơn hàng</div>
+        <div style="display:flex;gap:0">
+          <div style="flex:1;text-align:center;border-right:1px solid #f0f0f0">
+            <div style="font-size:22px;font-weight:800;color:#2196F3">${myOrders.length}</div>
+            <div style="font-size:10px;color:#888;margin-top:2px">Tổng đơn</div>
+          </div>
+          <div style="flex:1;text-align:center;border-right:1px solid #f0f0f0">
+            <div style="font-size:22px;font-weight:800;color:#4CAF50">${myDone.length}</div>
+            <div style="font-size:10px;color:#888;margin-top:2px">Đã giao</div>
+          </div>
+          <div style="flex:1;text-align:center">
+            <div style="font-size:22px;font-weight:800;color:#FF9800">${myActive.length}</div>
+            <div style="font-size:10px;color:#888;margin-top:2px">Đang giao</div>
+          </div>
+        </div>
+      </div>
+      <div class="prow" onclick="showPg('orders')"><span>📦 Đơn hàng của tôi</span><span>›</span></div>`;
+    })():''}
     ${user.role==='shop'?shopProfileExtra():''}
+    ${user.role==='admin'?adminProfileExtra():''}
     <div style="padding:0 12px"><button class="btn btn-red" onclick="doLogout()">🚪 Đăng xuất</button></div>
     ${user.role!=='admin'?`
     <div style="padding:4px 12px"><button class="btn" style="background:none;border:1.5px solid var(--primary);color:var(--primary);font-weight:700" onclick="showChangePw()">🔑 Đổi mật khẩu</button></div>
@@ -2674,6 +2735,171 @@ function updateSidebarCart(){
 window.addEventListener('resize',()=>{
   if(user)setupSidebar();
 });
+
+// ── SHOP ORDER CONFIRM/REJECT ─────────────
+window.confirmShopOrder=async function(id){
+  if(!confirm('Nhận đơn này?'))return;
+  try{
+    await updateDoc(doc(db,'orders',id),{status:'Chờ xác nhận'});
+    showToast('✅ Đã nhận đơn');
+    await loadGlobal();loadShopOrders();
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
+window.openRejectModal=function(id){
+  _rejectOrderId=id;
+  document.getElementById('rejectReasonInput').value='';
+  openModal('rejectModal');
+};
+window.submitReject=async function(){
+  if(!_rejectOrderId)return;
+  const reason=document.getElementById('rejectReasonInput').value.trim();
+  try{
+    await updateDoc(doc(db,'orders',_rejectOrderId),{status:'Đã hủy',rejectReason:reason||'Shop từ chối đơn'});
+    closeModal('rejectModal');
+    showToast('Đã từ chối đơn');
+    await loadGlobal();loadShopOrders();
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
+
+// ── SHIPPER PAYMENT TOGGLE ─────────────────
+window.togglePaymentCollected=async function(id,collected){
+  try{
+    await updateDoc(doc(db,'orders',id),{paymentCollected:collected});
+    showToast(collected?'✅ Đã đánh dấu thu tiền ship':'Bỏ đánh dấu thu tiền');
+    await loadGlobal();loadShipOrders();
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
+
+// ── ADMIN PROFILE EXTRA ───────────────────
+function adminProfileExtra(){
+  const ri=restaurantInfo;
+  const fieldStyle='width:100%;border:1.5px solid #eee;border-radius:10px;padding:9px 12px;font-size:14px;outline:none;margin-bottom:8px;box-sizing:border-box';
+  const labelStyle='display:block;font-size:12px;font-weight:700;color:#888;margin-bottom:4px';
+  return `
+    <!-- Restaurant Info -->
+    <div style="background:#fff;margin:0 0 8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px">🏪 Thông tin nhà hàng</div>
+      <label style="${labelStyle}">Tên nhà hàng</label>
+      <input id="admRiName" value="${ri.name||''}" placeholder="ShipFood" style="${fieldStyle}"/>
+      <label style="${labelStyle}">Địa chỉ</label>
+      <input id="admRiAddr" value="${ri.address||''}" placeholder="123 Đường ABC, Quận 1..." style="${fieldStyle}"/>
+      <label style="${labelStyle}">Số điện thoại</label>
+      <input id="admRiPhone" value="${ri.phone||''}" placeholder="0901234567" style="${fieldStyle}"/>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1"><label style="${labelStyle}">Giờ mở cửa</label><input type="time" id="admRiOpen" value="${ri.openTime||'07:00'}" style="${fieldStyle}"/></div>
+        <div style="flex:1"><label style="${labelStyle}">Giờ đóng</label><input type="time" id="admRiClose" value="${ri.closeTime||'22:00'}" style="${fieldStyle}"/></div>
+      </div>
+      <button onclick="saveRestaurantInfo()" class="btn btn-primary" style="width:100%">💾 Lưu thông tin</button>
+    </div>
+
+    <!-- Bank Account -->
+    <div style="background:#fff;margin:0 0 8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px">💳 Tài khoản ngân hàng (VietQR)</div>
+      <label style="${labelStyle}">Tên ngân hàng</label>
+      <input id="admBankName" value="${ri.bankName||''}" placeholder="VD: Vietcombank, MB Bank..." style="${fieldStyle}"/>
+      <label style="${labelStyle}">BIN ngân hàng (cho VietQR)</label>
+      <input id="admBankBin" value="${ri.bankBin||''}" placeholder="VD: 970436 (Vietcombank)" style="${fieldStyle}"/>
+      <label style="${labelStyle}">Số tài khoản</label>
+      <input id="admBankAcc" value="${ri.accountNumber||''}" placeholder="123456789" style="${fieldStyle}"/>
+      <label style="${labelStyle}">Tên chủ tài khoản</label>
+      <input id="admBankOwner" value="${ri.accountName||''}" placeholder="NGUYEN VAN A" style="${fieldStyle}"/>
+      <button onclick="saveBankConfig()" class="btn btn-primary" style="width:100%">💾 Lưu tài khoản</button>
+    </div>
+
+    <!-- Linked Shops -->
+    <div style="background:#fff;margin:0 0 8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;flex:1">🏪 Quán liên kết</div>
+      </div>
+      <div id="admLinkedShopsList"><div class="loading"><div class="spin"></div></div></div>
+    </div>
+
+    <!-- Reset Orders -->
+    <div style="padding:4px 12px 8px">
+      <button class="btn" style="background:none;border:1.5px solid var(--red);color:var(--red);font-weight:700;width:100%" onclick="resetAllOrders()">🗑️ Reset toàn bộ đơn hàng</button>
+    </div>
+  `;
+}
+
+window.saveRestaurantInfo=async function(){
+  const data={
+    name:document.getElementById('admRiName').value.trim(),
+    address:document.getElementById('admRiAddr').value.trim(),
+    phone:document.getElementById('admRiPhone').value.trim(),
+    openTime:document.getElementById('admRiOpen').value,
+    closeTime:document.getElementById('admRiClose').value,
+  };
+  try{
+    await setDoc(doc(db,'settings','restaurant'),data,{merge:true});
+    restaurantInfo={...restaurantInfo,...data};
+    showToast('✅ Đã lưu thông tin nhà hàng');
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
+
+window.saveBankConfig=async function(){
+  const data={
+    bankName:document.getElementById('admBankName').value.trim(),
+    bankBin:document.getElementById('admBankBin').value.trim(),
+    accountNumber:document.getElementById('admBankAcc').value.trim(),
+    accountName:document.getElementById('admBankOwner').value.trim(),
+  };
+  try{
+    await setDoc(doc(db,'settings','restaurant'),data,{merge:true});
+    restaurantInfo={...restaurantInfo,...data};
+    showToast('✅ Đã lưu tài khoản ngân hàng');
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
+
+window.resetAllOrders=async function(){
+  if(!confirm('XÓA TOÀN BỘ đơn hàng? Thao tác này không thể hoàn tác!'))return;
+  if(!confirm('Bạn chắc chắn muốn xóa hết? Nhấn OK để tiếp tục.'))return;
+  try{
+    const snap=await getDocs(collection(db,'orders'));
+    await Promise.all(snap.docs.map(d=>deleteDoc(doc(db,'orders',d.id))));
+    allOrders=[];showToast('✅ Đã xóa toàn bộ đơn hàng');loadAdmOrders();
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
+
+window.loadAdminLinkedShops=async function(){
+  const el=document.getElementById('admLinkedShopsList');
+  if(!el)return;
+  try{
+    const snap=await getDocs(collection(db,'linkedShops'));
+    _linkedShopsData=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(!_linkedShopsData.length){el.innerHTML='<p style="color:#888;font-size:13px;text-align:center;padding:8px 0">Chưa có quán liên kết nào</p>';return;}
+    el.innerHTML=_linkedShopsData.map(s=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #f5f5f5">
+        <div style="width:40px;height:40px;border-radius:20px;background:#2196F320;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+          ${s.avatar?`<img src="${s.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:20px"/>`:'🏪'}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700">${s.name||s.shopName||'Shop'}</div>
+          ${s.description?`<div style="font-size:12px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.description}</div>`:''}
+          <div style="font-size:11px;color:${s.shopOpen===false?'#c62828':'#388e3c'};margin-top:2px">${s.shopOpen===false?'🔴 Đóng cửa':'🟢 Mở cửa'}</div>
+        </div>
+        <button onclick="toggleShopOpenAdmin('${s.id}',${s.shopOpen!==false})" style="padding:5px 10px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;background:${s.shopOpen===false?'#E8F5E9':'#FFEBEE'};color:${s.shopOpen===false?'#388e3c':'#c62828'}">${s.shopOpen===false?'Mở':'Đóng'}</button>
+        <button onclick="delLinkedShop('${s.id}')" style="width:32px;height:32px;border-radius:16px;background:#ffebee;border:none;cursor:pointer;font-size:14px">🗑️</button>
+      </div>
+    `).join('');
+  }catch(e){if(el)el.innerHTML='<p style="color:red;font-size:12px">Lỗi: '+e.message+'</p>';}
+};
+
+window.toggleShopOpenAdmin=async function(id,currentlyOpen){
+  const newVal=!currentlyOpen;
+  try{
+    await updateDoc(doc(db,'linkedShops',id),{shopOpen:newVal});
+    showToast(newVal?'✅ Quán đã mở cửa':'🔴 Quán đã đóng cửa');
+    loadAdminLinkedShops();
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
+
+window.delLinkedShop=async function(id){
+  if(!confirm('Xóa quán liên kết này?'))return;
+  try{
+    await deleteDoc(doc(db,'linkedShops',id));
+    showToast('Đã xóa quán');loadAdminLinkedShops();
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
 </script>
 </body>
 </html>
