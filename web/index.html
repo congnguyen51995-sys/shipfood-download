@@ -428,91 +428,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;mar
 <body>
 
 <!-- LANDING PAGE -->
-<div id="landingPage" style="display:none">
-  <header class="lp-header">
-    <img class="lp-logo" src="../assets/icon.png" alt="ShipFood"/>
-    <span class="lp-brand">ShipFood</span>
-    <div class="lp-auth-btns">
-      <button class="lp-btn-login" onclick="openAuth('login')">Đăng nhập</button>
-      <button class="lp-btn-reg" onclick="openAuth('register')">Đăng ký</button>
-    </div>
-  </header>
-  <div class="lp-hero">
-    <div class="lp-hero-title">🛵 Đặt đồ ăn<br>giao tận nơi</div>
-    <div class="lp-hero-sub">Hàng chục món ngon tại Tiên Lục – Đặt trong 1 phút, nhận trong 30 phút</div>
-    <div class="lp-hero-btns">
-      <button class="lp-hero-btn-main" onclick="openAuth('register')">🍜 Đặt món ngay</button>
-      <button class="lp-hero-btn-sec" onclick="openAuth('login')">Đăng nhập</button>
-    </div>
-  </div>
-  <div class="lp-features">
-    <div class="lp-feat"><div class="lp-feat-icon">⚡</div><div class="lp-feat-title">Nhanh chóng</div><div class="lp-feat-sub">Giao trong 30 phút</div></div>
-    <div class="lp-feat"><div class="lp-feat-icon">🍽️</div><div class="lp-feat-title">Đa dạng</div><div class="lp-feat-sub">100+ món ngon</div></div>
-    <div class="lp-feat"><div class="lp-feat-icon">📍</div><div class="lp-feat-title">Theo dõi</div><div class="lp-feat-sub">Thời gian thực</div></div>
-    <div class="lp-feat"><div class="lp-feat-icon">💸</div><div class="lp-feat-title">Tiết kiệm</div><div class="lp-feat-sub">Ship chỉ từ 5k</div></div>
-  </div>
-  <!-- Gợi ý theo giờ -->
-  <div id="lpSuggestSection">
-    <div class="lp-section-title" id="lpSuggestTitle">🌅 Bữa sáng gợi ý</div>
-    <div class="lp-hscroll" id="lpSuggestGrid"></div>
-  </div>
-
-  <!-- Món bán chạy -->
-  <div id="lpHotSection" style="display:none">
-    <div class="lp-section-title">🔥 Món bán chạy</div>
-    <div class="lp-hscroll" id="lpHotGrid"></div>
-  </div>
-
-  <!-- Tất cả món -->
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px">
-    <div class="lp-section-title" style="padding:0;margin:0">🍽️ Thực đơn</div>
-    <button id="lpMenuToggle" onclick="lpToggleMenu()" style="background:none;border:1.5px solid var(--primary);color:var(--primary);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">Xem thêm ▾</button>
-  </div>
-  <div class="lp-menu-grid" id="lpMenuGrid">
-    <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--gray)">Đang tải thực đơn...</div>
-  </div>
-
-  <!-- Banner tải app -->
-  <div class="lp-app-banner">
-    <div class="lp-app-banner-inner">
-      <img src="../assets/icon.png" class="lp-app-banner-img" alt="ShipFood"/>
-      <div class="lp-app-banner-text">
-        <div class="lp-app-banner-title">📱 Tải app ShipFood – Trải nghiệm mượt mà hơn!</div>
-        <div class="lp-app-banner-sub">Nhận thông báo đơn hàng · Theo dõi shipper · Đặt món nhanh hơn</div>
-        <div class="lp-app-banner-stars">★★★★★ <span style="font-size:11px;opacity:.7">Miễn phí</span></div>
-      </div>
-      <a class="lp-app-banner-btn" href="https://congnguyen51995-sys.github.io/shipfood-download/download.html" target="_blank">⬇ Tải App</a>
-    </div>
-  </div>
-
-  <!-- Facebook page -->
-  <div class="lp-fb-section">
-    <div class="lp-fb-inner">
-      <div class="lp-fb-icon">📘</div>
-      <div class="lp-fb-text">
-        <div class="lp-fb-title">Theo dõi ShipFood Tiên Lục</div>
-        <div class="lp-fb-sub">Cập nhật món mới · Khuyến mãi · Tin tức</div>
-      </div>
-      <a class="lp-fb-btn" href="https://www.facebook.com/profile.php?id=61591489407067" target="_blank">Theo dõi</a>
-    </div>
-  </div>
-
-  <div class="lp-footer">
-    <img src="../assets/icon.png" style="width:36px;height:36px;border-radius:10px;object-fit:cover" alt="logo"/>
-    <div>
-      <div style="font-size:15px;font-weight:800;color:#fff">ShipFood Tiên Lục</div>
-      <div style="font-size:12px;opacity:.7;margin-top:2px">© 2026 · Giao đồ ăn nhanh tại Tiên Lục – Bắc Ninh</div>
-    </div>
-  </div>
-
-  <div class="lp-login-prompt" id="lpLoginPrompt">
-    <div class="lp-login-prompt-text">👆 Đăng nhập để thêm vào giỏ hàng</div>
-    <div class="lp-login-prompt-btns">
-      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openAuth('login')">Đăng nhập</button>
-      <button class="btn btn-primary btn-sm" style="flex:1" onclick="openAuth('register')">Đăng ký miễn phí</button>
-    </div>
-  </div>
-</div>
+<div id="landingPage" style="display:none"></div>
 
 <!-- AUTH MODAL -->
 <div id="authBg" class="auth-bg" style="display:none" onclick="closeAuthIfBackdrop(event)">
@@ -2584,81 +2500,265 @@ async function showLanding(){
   document.getElementById('landingPage').style.display='block';
   document.getElementById('sidebar').style.display='none';
   document.getElementById('mainArea').style.display='none';
-  await loadLandingMenu();
+  await renderLanding();
 }
 
-function lpCardHtml(m,cls='lp-mcard',imgCls='lp-mcard-img',bodyCls='lp-mcard-body'){
-  const isH=cls==='lp-hcard';
-  return`<div class="${cls}" onclick="lpClickItem()">
-    <div class="${isH?'lp-hcard-img':'lp-mcard-img'}">${m.image?`<img src="${m.image}" onerror="this.style.display='none'" alt="${m.name}"/>`:''}🍜</div>
-    <div class="${isH?'lp-hcard-body':'lp-mcard-body'}">
-      <div class="${isH?'lp-hcard-name':'lp-mcard-name'}">${m.name}</div>
-      ${!isH?`<div class="lp-mcard-cat">${m.category||''}</div>`:''}
-      <div class="${isH?'lp-hcard-foot':'lp-mcard-foot'}">
-        <span class="${isH?'lp-hcard-price':'lp-mcard-price'}">${fmtCur(m.price)}</span>
-        <button class="${isH?'lp-hcard-add':'lp-mcard-add'}" onclick="event.stopPropagation();lpAddItem()">+</button>
+function lpGcard(m){
+  return`<div onclick="lpAddItem()" style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.08);cursor:pointer">
+    <div style="height:120px;display:flex;align-items:center;justify-content:center;background:#fff7f3;font-size:52px;position:relative;overflow:hidden">
+      ${m.image?`<img src="${m.image}" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0"/>`:''}🍜
+    </div>
+    <div style="padding:10px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.name}</div>
+      <div style="font-size:11px;color:var(--gray);margin-bottom:6px">${m.category||''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:14px;font-weight:700;color:var(--primary)">${fmtCur(m.price)}</span>
+        <button onclick="event.stopPropagation();lpAddItem()" style="width:30px;height:30px;border-radius:50%;background:var(--primary);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">+</button>
       </div>
     </div>
   </div>`;
 }
 
-async function loadLandingMenu(){
+function lpHcard(m){
+  return`<div onclick="lpAddItem()" style="width:150px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.08);flex-shrink:0;cursor:pointer">
+    <div style="height:110px;display:flex;align-items:center;justify-content:center;background:#fff7f3;font-size:44px;position:relative;overflow:hidden">
+      ${m.image?`<img src="${m.image}" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0"/>`:''}🍜
+    </div>
+    <div style="padding:9px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.name}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:700;color:var(--primary)">${fmtCur(m.price)}</span>
+        <button onclick="event.stopPropagation();lpAddItem()" style="width:26px;height:26px;border-radius:50%;background:var(--primary);border:none;color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">+</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function renderLanding(){
+  const el=document.getElementById('landingPage');
+  el.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--gray)">Đang tải...</div>`;
   try{
-    const[menuSnap,ordSnap]=await Promise.all([
+    const[menuSnap,ordSnap,settSnap]=await Promise.all([
       getDocs(collection(db,'menu')),
       getDocs(collection(db,'orders')).catch(()=>({docs:[]})),
+      getDocs(collection(db,'settings')).catch(()=>({docs:[]})),
     ]);
     const items=menuSnap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.available!==false);
-    if(!items.length){
-      document.getElementById('lpMenuGrid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--gray)">Thực đơn đang cập nhật...</div>';
-      return;
-    }
+    const ri=(settSnap.docs.find(d=>d.id==='restaurant')?.data())||{};
+    const now=new Date();const h=now.getHours();
+    const [oh,om]=(ri.openTime||'07:00').split(':').map(Number);
+    const [ch,cm]=(ri.closeTime||'22:00').split(':').map(Number);
+    const cur=h*60+now.getMinutes();
+    const isOpen=cur>=oh*60+om&&cur<ch*60+cm;
 
-    // Gợi ý theo giờ
-    const h=new Date().getHours();
-    const titles={0:'🌅 Bữa sáng gợi ý',11:'☀️ Bữa trưa gợi ý',14:'🌤 Bữa xế gợi ý',18:'🌙 Bữa tối gợi ý'};
-    const catMap=h<11?['Bún','Phở','Bánh mì']:h<14?['Cơm','Phở','Bún']:h<18?['Đồ uống','Tráng miệng','Bánh mì']:['Đồ ăn','Cơm','Đồ uống'];
-    document.getElementById('lpSuggestTitle').textContent=Object.entries(titles).reverse().find(([k])=>h>=Number(k))?.[1]||'🍜 Gợi ý cho bạn';
-    const suggested=(items.filter(m=>catMap.includes(m.category)).slice(0,8)||items.slice(0,8));
-    document.getElementById('lpSuggestGrid').innerHTML=suggested.map(m=>lpCardHtml(m,'lp-hcard')).join('');
+    // Hot items
+    const cnt={};ordSnap.docs.forEach(d=>d.data().items?.forEach(i=>{cnt[i.id]=(cnt[i.id]||0)+(i.qty||i.quantity||1);}));
+    const hotItems=[...items].sort((a,b)=>(cnt[b.id]||0)-(cnt[a.id]||0)).slice(0,6);
 
-    // Món bán chạy
-    const count={};
-    ordSnap.docs.forEach(d=>d.data().items?.forEach(i=>{count[i.id]=(count[i.id]||0)+i.quantity;}));
-    const hot=[...items].sort((a,b)=>(count[b.id]||0)-(count[a.id]||0)).slice(0,8);
-    const hotSection=document.getElementById('lpHotSection');
-    if(hot.length){
-      hotSection.style.display='block';
-      document.getElementById('lpHotGrid').innerHTML=hot.map(m=>lpCardHtml(m,'lp-hcard')).join('');
-    }
+    // Top rank
+    const rk={};ordSnap.docs.forEach(d=>d.data().items?.forEach(i=>{if(!rk[i.name])rk[i.name]=0;rk[i.name]+=(i.qty||i.quantity||1);}));
+    const topRank=Object.entries(rk).map(([name,qty])=>({name,qty})).sort((a,b)=>b.qty-a.qty).slice(0,5);
 
-    // Tất cả món – hiện 8 trước
+    // Suggested by time
+    const sugCats=h<11?['Bún','Phở','Bánh mì']:h<14?['Cơm','Phở','Bún']:h<18?['Đồ uống','Tráng miệng','Bánh mì']:['Đồ ăn','Cơm','Đồ uống'];
+    const sugTitle=h<11?'🌅 Bữa sáng gợi ý':h<14?'☀️ Bữa trưa gợi ý':h<18?'🌤 Bữa xế gợi ý':'🌙 Bữa tối gợi ý';
+    let suggested=items.filter(m=>sugCats.includes(m.category));
+    if(suggested.length<3)suggested=items.slice(0,6);
+    suggested=suggested.slice(0,6);
+
+    // All items for menu section
     window._lpAllItems=items;
     window._lpShowAll=false;
-    renderLpMenu();
-  }catch(e){console.log(e);}
+
+    el.innerHTML=`
+      <!-- Orange header -->
+      <div style="background:var(--primary);padding:16px 16px 14px;position:sticky;top:0;z-index:50">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:10px">
+            <img src="../assets/icon.png" style="width:36px;height:36px;border-radius:10px;object-fit:cover"/>
+            <div>
+              <div style="font-size:17px;font-weight:800;color:#fff">🛵 ShipFood</div>
+              <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
+                <div style="width:7px;height:7px;border-radius:4px;background:${isOpen?'#69F0AE':'#FF5252'}"></div>
+                <span style="font-size:11px;color:rgba(255,255,255,.85)">${isOpen?`Đang mở · ${ri.openTime||'07:00'}–${ri.closeTime||'22:00'}`:'Đã đóng cửa'}</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="openAuth('login')" style="padding:8px 14px;border:1.5px solid rgba(255,255,255,.7);border-radius:10px;background:rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:700;cursor:pointer">Đăng nhập</button>
+            <button onclick="openAuth('register')" style="padding:8px 14px;border:none;border-radius:10px;background:#fff;color:var(--primary);font-size:13px;font-weight:700;cursor:pointer">Đăng ký</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search bar -->
+      <div style="padding:10px 12px 6px;background:var(--bg)">
+        <div style="background:#fff;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 1px 6px rgba(0,0,0,.08)">
+          <span style="color:#bbb;font-size:16px">🔍</span>
+          <input id="lpSearchInput" placeholder="Tìm món ăn..." oninput="lpSearchChange(this.value)"
+            style="border:none;outline:none;flex:1;font-size:14px;color:#222;background:transparent"/>
+          <span id="lpSearchClear" onclick="lpSearchClear()" style="display:none;cursor:pointer;color:#bbb;font-size:18px;line-height:1">✕</span>
+        </div>
+      </div>
+
+      <!-- Search results -->
+      <div id="lpSearchResults" style="display:none;background:#fff;margin:0 12px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.12);max-height:50vh;overflow-y:auto;position:relative;z-index:40"></div>
+
+      <!-- Main content -->
+      <div id="lpMain">
+        <!-- Danh mục -->
+        <div style="margin-top:14px">
+          <div style="font-size:15px;font-weight:700;padding:0 14px;margin-bottom:8px">Danh mục</div>
+          <div style="display:flex;overflow-x:auto;padding:0 12px 4px;gap:10px;scrollbar-width:none">
+            ${[{l:'Cơm',e:'🍚'},{l:'Phở',e:'🍜'},{l:'Bún',e:'🍝'},{l:'Bánh mì',e:'🥖'},{l:'Đồ uống',e:'🧋'},{l:'Tráng miệng',e:'🍮'},{l:'Đồ ăn',e:'🍽️'}].map(c=>`
+              <div onclick="openAuth('login')" style="display:flex;flex-direction:column;align-items:center;background:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 1px 6px rgba(0,0,0,.08);cursor:pointer;min-width:64px;flex-shrink:0">
+                <div style="font-size:22px">${c.e}</div>
+                <div style="font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap">${c.l}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        ${suggested.length?`
+        <div style="margin-top:14px">
+          <div style="font-size:15px;font-weight:700;padding:0 14px;margin-bottom:8px">${sugTitle}</div>
+          <div style="display:flex;overflow-x:auto;padding:0 12px 4px;gap:10px;scrollbar-width:none">
+            ${suggested.map(m=>lpHcard(m)).join('')}
+          </div>
+        </div>`:''}
+
+        ${hotItems.length?`
+        <div style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;margin-bottom:8px">
+            <div style="font-size:15px;font-weight:700">🔥 Món bán chạy</div>
+            <button onclick="openAuth('login')" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer">Xem tất cả ›</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px;margin-bottom:10px">
+            ${hotItems.slice(0,2).map(m=>lpGcard(m)).join('')}
+          </div>
+          <div style="display:flex;overflow-x:auto;padding:0 12px 4px;gap:10px;scrollbar-width:none">
+            ${hotItems.slice(2).map(m=>lpHcard(m)).join('')}
+          </div>
+        </div>`:''}
+
+        ${topRank.length?`
+        <div style="margin-top:14px;margin-bottom:4px">
+          <div style="font-size:15px;font-weight:700;padding:0 14px;margin-bottom:8px">🏆 Bảng xếp hạng món</div>
+          <div style="background:#fff;border-radius:14px;margin:0 12px;box-shadow:0 1px 6px rgba(0,0,0,.08);overflow:hidden">
+            ${topRank.map((item,i)=>{
+              const medal=i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#E0E0E0';
+              const tc=i<3?'#fff':'#888';
+              return`<div onclick="openAuth('login')" style="display:flex;align-items:center;padding:12px 14px;${i>0?'border-top:1px solid #F5F5F5':''};gap:10px;cursor:pointer">
+                <div style="width:28px;height:28px;border-radius:14px;background:${medal};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <span style="font-size:11px;font-weight:700;color:${tc}">#${i+1}</span>
+                </div>
+                <span style="flex:1;font-size:13px;font-weight:600">${item.name}</span>
+                <span style="font-size:12px;color:#aaa">${item.qty} đơn</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`:''}
+
+        <!-- Thực đơn đầy đủ -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 14px 8px">
+          <div style="font-size:15px;font-weight:700">🍽️ Thực đơn</div>
+          <button id="lpMenuToggle" onclick="lpToggleMenu()" style="background:none;border:1.5px solid var(--primary);color:var(--primary);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">Xem thêm ▾</button>
+        </div>
+        <div id="lpMenuGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 10px">
+          ${items.slice(0,8).map(m=>lpGcard(m)).join('')}
+        </div>
+
+        <!-- CTA đăng nhập -->
+        <div style="background:linear-gradient(135deg,var(--primary),#FF8C5A);border-radius:16px;margin:8px 12px 0;padding:20px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:6px">🍜 Đặt món ngay!</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.85);margin-bottom:16px">Đăng nhập để thêm vào giỏ hàng và đặt hàng</div>
+          <div style="display:flex;gap:10px;justify-content:center">
+            <button onclick="openAuth('register')" style="padding:11px 24px;background:#fff;color:var(--primary);border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.15)">🛒 Đăng ký miễn phí</button>
+            <button onclick="openAuth('login')" style="padding:11px 24px;background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.5);border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">Đăng nhập</button>
+          </div>
+        </div>
+
+        <!-- App banner -->
+        <div style="margin:16px 12px 8px;border-radius:20px;overflow:hidden">
+          <div style="background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:18px;display:flex;align-items:center;gap:14px">
+            <img src="../assets/icon.png" style="width:56px;height:56px;border-radius:14px;object-fit:cover;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,.4)"/>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:3px">📱 Tải app ShipFood – Mượt mà hơn!</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.65);margin-bottom:5px;line-height:1.4">Nhận thông báo đơn hàng · Theo dõi shipper · Đặt món nhanh hơn</div>
+              <div style="color:#FFD700;font-size:11px">★★★★★ <span style="font-size:11px;opacity:.7">Miễn phí</span></div>
+            </div>
+            <a href="https://congnguyen51995-sys.github.io/shipfood-download/download.html" target="_blank"
+              style="flex-shrink:0;background:linear-gradient(135deg,var(--primary),#FF8C5A);color:#fff;border:none;border-radius:12px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;text-decoration:none;text-align:center;white-space:nowrap;box-shadow:0 4px 12px rgba(255,107,53,.4)">⬇ Tải App</a>
+          </div>
+        </div>
+
+        <!-- Facebook -->
+        <div style="margin:10px 12px 8px;background:#fff;border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);border:1px solid #e3eaf8">
+          <div style="font-size:32px;flex-shrink:0">📘</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700;color:var(--text)">Theo dõi ShipFood Tiên Lục</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:2px">Cập nhật món mới · Khuyến mãi · Tin tức</div>
+          </div>
+          <a href="https://www.facebook.com/profile.php?id=61591489407067" target="_blank"
+            style="background:#1877F2;color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap;flex-shrink:0">Theo dõi</a>
+        </div>
+
+        <div style="background:var(--text);margin-top:24px;padding:24px 20px;display:flex;align-items:center;gap:14px">
+          <img src="../assets/icon.png" style="width:36px;height:36px;border-radius:10px;object-fit:cover" alt="logo"/>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#fff">ShipFood Tiên Lục</div>
+            <div style="font-size:12px;opacity:.7;margin-top:2px;color:#fff">© 2026 · Giao đồ ăn nhanh tại Tiên Lục – Bắc Ninh</div>
+          </div>
+        </div>
+        <div style="height:20px"></div>
+      </div>
+    `;
+    // render menu toggle
+    const all=window._lpAllItems||[];
+    const btn=document.getElementById('lpMenuToggle');
+    if(btn&&all.length<=8)btn.style.display='none';
+  }catch(e){console.error(e);document.getElementById('landingPage').innerHTML='<div style="text-align:center;padding:60px;color:var(--gray)">Lỗi tải trang</div>';}
 }
 
-function renderLpMenu(){
-  const all=window._lpAllItems||[];
-  const shown=window._lpShowAll?all:all.slice(0,8);
-  document.getElementById('lpMenuGrid').innerHTML=shown.map(m=>lpCardHtml(m)).join('');
-  const btn=document.getElementById('lpMenuToggle');
-  if(btn){
-    if(all.length<=8){btn.style.display='none';}
-    else{btn.textContent=window._lpShowAll?'Thu gọn ▴':'Xem thêm ▾';}
-  }
-}
 window.lpToggleMenu=function(){
   window._lpShowAll=!window._lpShowAll;
-  renderLpMenu();
-  if(!window._lpShowAll)document.getElementById('lpMenuGrid').scrollIntoView({behavior:'smooth',block:'start'});
+  const all=window._lpAllItems||[];
+  const shown=window._lpShowAll?all:all.slice(0,8);
+  const grid=document.getElementById('lpMenuGrid');
+  const btn=document.getElementById('lpMenuToggle');
+  if(grid)grid.innerHTML=shown.map(m=>lpGcard(m)).join('');
+  if(btn)btn.textContent=window._lpShowAll?'Thu gọn ▴':'Xem thêm ▾';
+  if(!window._lpShowAll&&grid)grid.scrollIntoView({behavior:'smooth',block:'start'});
 };
 
-window.lpClickItem=function(){lpAddItem();};
-window.lpAddItem=function(){
-  openAuth('login');
-  document.getElementById('lpLoginPrompt')&&(document.getElementById('lpLoginPrompt').style.display='block');
+window.lpAddItem=function(){openAuth('login');};
+
+window.lpSearchChange=function(q){
+  const clearBtn=document.getElementById('lpSearchClear');
+  const results=document.getElementById('lpSearchResults');
+  const main=document.getElementById('lpMain');
+  if(clearBtn)clearBtn.style.display=q?'block':'none';
+  if(!q){if(results)results.style.display='none';if(main)main.style.display='block';return;}
+  if(main)main.style.display='none';
+  const items=(window._lpAllItems||[]).filter(m=>m.name.toLowerCase().includes(q.toLowerCase())||( m.category||'').toLowerCase().includes(q.toLowerCase()));
+  if(results){
+    results.style.display='block';
+    if(!items.length){results.innerHTML='<div style="text-align:center;padding:24px;color:var(--gray)">Không tìm thấy món</div>';return;}
+    results.innerHTML=items.map(m=>`<div onclick="lpAddItem()" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #F5F5F5;cursor:pointer">
+      <div style="width:48px;height:48px;border-radius:10px;background:#fff7f3;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;position:relative;overflow:hidden">
+        ${m.image?`<img src="${m.image}" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0"/>`:''}🍜
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.name}</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">${m.category||''} · ${fmtCur(m.price)}</div>
+      </div>
+      <button onclick="event.stopPropagation();lpAddItem()" style="width:30px;height:30px;border-radius:50%;background:var(--primary);border:none;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0">+</button>
+    </div>`).join('');
+  }
+};
+window.lpSearchClear=function(){
+  const inp=document.getElementById('lpSearchInput');
+  if(inp)inp.value='';
+  lpSearchChange('');
 };
 
 window.openAuth=function(tab){
