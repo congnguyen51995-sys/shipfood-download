@@ -1597,21 +1597,53 @@ window.placeOrder=async function(){
 };
 
 // ── MY ORDERS ────────────────────────────
-function renderOrdersFilter(elId,filter,onChange){
+// ── ORDER GROUPING HELPER ─────────────────
+const FINAL_ST=new Set(['Đã giao','Đã hủy']);
+const ACTIVE_STATUSES=['Chờ shop','Chờ xác nhận','Đã xác nhận','Đang lấy hàng','Đã lấy hàng','Đang giao'];
+function renderGroupedOrders(elId,orders,canEdit,isShipper){
   const el=document.getElementById(elId);
-  const tabs=['Tất cả',...STATUSES];
-  el.innerHTML=tabs.map(s=>`<div class="ftab ${s===filter?'on':''}" onclick="${onChange}('${s}')">${s}</div>`).join('');
+  if(!orders.length){el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><p>Không có đơn</p></div>';return;}
+  const today=new Date();today.setHours(0,0,0,0);
+  const active=orders.filter(o=>!FINAL_ST.has(o.status));
+  const todayDone=orders.filter(o=>FINAL_ST.has(o.status)&&new Date(o.createdAt)>=today);
+  const older=orders.filter(o=>FINAL_ST.has(o.status)&&new Date(o.createdAt)<today);
+  let html='';
+  if(active.length){
+    html+=`<div style="padding:10px 12px 4px;font-size:13px;font-weight:700;color:#e65100;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:#e65100"></span>Đang xử lý (${active.length})</div>`;
+    html+=active.map(o=>ocard(o,canEdit,isShipper)).join('');
+  }
+  if(todayDone.length){
+    html+=`<div style="padding:10px 12px 4px;font-size:13px;font-weight:700;color:#388e3c;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:#388e3c"></span>Hôm nay (${todayDone.length})</div>`;
+    html+=todayDone.map(o=>ocard(o,canEdit,isShipper)).join('');
+  }
+  if(older.length){
+    html+=`<div style="padding:10px 12px 4px">
+      <button onclick="toggleOlderOrders('${elId}')" id="olderBtn_${elId}" style="width:100%;padding:10px;background:#fff;border:1.5px solid var(--border);border-radius:12px;font-size:13px;font-weight:600;color:var(--gray);cursor:pointer">📦 Xem đơn cũ hơn (${older.length}) ▾</button>
+    </div>
+    <div id="olderOrders_${elId}" style="display:none">${older.map(o=>ocard(o,canEdit,isShipper)).join('')}</div>`;
+  }
+  if(!active.length&&!todayDone.length&&!older.length){
+    html='<div class="empty"><div class="empty-icon">📦</div><p>Không có đơn</p></div>';
+  }
+  el.innerHTML=html;
 }
+window.toggleOlderOrders=function(elId){
+  const d=document.getElementById('olderOrders_'+elId);
+  const b=document.getElementById('olderBtn_'+elId);
+  if(!d)return;
+  const open=d.style.display==='none';
+  d.style.display=open?'block':'none';
+  if(b)b.textContent=b.textContent.replace(open?'▾':'▴',open?'▴':'▾');
+};
+
 async function loadMyOrders(){
-  renderOrdersFilter('ordersFilter',ordersFilter,'setOrdFilter');
   const el=document.getElementById('ordersBody');
   el.innerHTML='<div class="loading"><div class="spin"></div></div>';
-  const orders=allOrders.filter(o=>o.customerId===user.id);
-  const shown=ordersFilter==='Tất cả'?orders:orders.filter(o=>o.status===ordersFilter);
-  if(!shown.length){el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><p>Chưa có đơn hàng</p></div>';return;}
-  el.innerHTML=shown.map(o=>ocard(o,false,false)).join('');
+  const orders=allOrders.filter(o=>o.customerId===user.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  document.getElementById('ordersFilter').innerHTML='';
+  renderGroupedOrders('ordersBody',orders,false,false);
 }
-window.setOrdFilter=function(s){ordersFilter=s;renderOrdersFilter('ordersFilter',s,'setOrdFilter');const el=document.getElementById('ordersBody');const orders=allOrders.filter(o=>o.customerId===user.id);const shown=s==='Tất cả'?orders:orders.filter(o=>o.status===s);el.innerHTML=shown.length?shown.map(o=>ocard(o,false,false)).join(''):'<div class="empty"><div class="empty-icon">📦</div><p>Không có đơn</p></div>';};
+window.setOrdFilter=function(){};
 
 // ── ORDER CARD ────────────────────────────
 function ocard(o,canEdit=false,isShipper=false){
@@ -1750,14 +1782,10 @@ window.callPhone=function(p){window.open('tel:'+p);};
 
 // ── ADMIN ORDERS ──────────────────────────
 window.loadAdmOrders=function(){
-  renderOrdersFilter('admOrdersFilter',admOrderFilter,'setAdmOrdFilter');
-  const shown=admOrderFilter==='Tất cả'?allOrders:allOrders.filter(o=>o.status===admOrderFilter);
-  const pending=allOrders.filter(o=>o.status==='Chờ xác nhận').length;
-  document.getElementById('admOrdersBody').innerHTML=
-    (pending?`<div style="background:#fff3e0;padding:10px 16px;margin:0 12px 10px;border-radius:12px;font-size:13px;font-weight:700;color:#e65100">🔔 ${pending} đơn chờ xác nhận</div>`:'')
-    +(shown.length?shown.map(o=>ocard(o,true,false)).join(''):'<div class="empty"><div class="empty-icon">📋</div><p>Không có đơn</p></div>');
+  document.getElementById('admOrdersFilter').innerHTML='';
+  renderGroupedOrders('admOrdersBody',allOrders.slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)),true,false);
 };
-window.setAdmOrdFilter=function(s){admOrderFilter=s;renderOrdersFilter('admOrdersFilter',s,'setAdmOrdFilter');loadAdmOrders();};
+window.setAdmOrdFilter=function(){};
 
 // ── ADMIN MENU ────────────────────────────
 window.loadAdmMenu=async function(){
@@ -2290,22 +2318,23 @@ window.loadShopOrders=function(){
       <div style="font-size:10px;color:#888;margin-top:2px">Ship nhận</div>
     </div>
   </div>`;
-  const shown=shopOrderFilter==='Tất cả'?orders:orders.filter(o=>o.status===shopOrderFilter);
-  document.getElementById('shopOrdersBody').innerHTML=statsBar+(shown.length?shown.map(o=>ocard(o,true,false)).join(''):'<div class="empty"><div class="empty-icon">📋</div><p>Không có đơn hàng</p></div>');
+  document.getElementById('shopOrdersBody').innerHTML=statsBar;
+  const grouped=document.createElement('div');
+  grouped.id='shopOrdersGrouped';
+  document.getElementById('shopOrdersBody').appendChild(grouped);
+  renderGroupedOrders('shopOrdersGrouped',orders.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)),true,false);
 };
 window.setShopOrdFilter=function(s){shopOrderFilter=s;loadShopOrders();};
 window.setShopDateFilter=function(d){shopDateFilter=d;loadShopOrders()};
 
 // ── SHIPPER ORDERS ────────────────────────
 window.loadShipOrders=function(){
-  const tabs=['Tất cả','Chờ xác nhận','Đã xác nhận','Đang lấy hàng','Đã lấy hàng','Đang giao','Đã giao'];
-  const el=document.getElementById('shipOrdersFilter');
-  el.innerHTML=tabs.map(s=>`<div class="ftab ${s===shipOrderFilter?'on':''}" onclick="setShipOrdFilter('${s}')">${s}</div>`).join('');
-  const orders=allOrders.filter(o=>['Chờ xác nhận','Đã xác nhận','Đang lấy hàng','Đã lấy hàng','Đang giao','Đã giao'].includes(o.status));
-  const shown=shipOrderFilter==='Tất cả'?orders:orders.filter(o=>o.status===shipOrderFilter);
-  document.getElementById('shipOrdersBody').innerHTML=shown.length?shown.map(o=>ocard(o,true,true)).join(''):'<div class="empty"><div class="empty-icon">🛵</div><p>Không có đơn giao</p></div>';
+  document.getElementById('shipOrdersFilter').innerHTML='';
+  const orders=allOrders.filter(o=>['Chờ xác nhận','Đã xác nhận','Đang lấy hàng','Đã lấy hàng','Đang giao','Đã giao'].includes(o.status))
+    .sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  renderGroupedOrders('shipOrdersBody',orders,true,true);
 };
-window.setShipOrdFilter=function(s){shipOrderFilter=s;loadShipOrders();};
+window.setShipOrdFilter=function(){};
 
 // ── REVENUE ───────────────────────────────
 function renderPeriodRow(elId,role){
