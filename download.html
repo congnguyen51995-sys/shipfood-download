@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>ShipFood - Tải ứng dụng</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #FF6B35;
+      --primary-light: #FFF3EE;
+      --primary-dark: #E85A26;
+      --secondary: #F7C59F;
+      --bg: #FFF8F0;
+      --dark: #1A1A2E;
+      --gray: #888;
+      --light-gray: #F0F0F0;
+      --white: #fff;
+      --green: #4CAF50;
+      --blue: #2196F3;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--dark);
+    }
+
+    /* ── STATUS BAR MOCKUP ── */
+    .status-bar {
+      background: var(--primary);
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .status-time { font-weight: 700; font-size: 13px; }
+    .status-icons { display: flex; gap: 6px; align-items: center; }
+    .status-icons span { font-size: 13px; }
+
+    /* ── APP HEADER ── */
+    .app-header {
+      background: var(--primary);
+      padding: 16px 16px 20px;
+      padding-bottom: 28px;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .logo-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .header-cart {
+      width: 40px; height: 40px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .header-greeting {
+      color: rgba(255,255,255,0.9);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .header-title {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    /* ── SEARCH BAR ── */
+    .search-wrap {
+      background: var(--primary);
+      padding: 0 16px 20px;
+      margin-top: -8px;
+    }
+    .search-bar {
+      background: #fff;
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .search-icon { font-size: 18px; }
+    .search-text { color: #aaa; font-size: 14px; flex: 1; }
+
+    /* ── CONTENT ── */
+    .content {
+      padding: 0 12px 100px;
+      margin-top: -12px;
+    }
+
+    /* ── BANNER CAROUSEL ── */
+    .banner {
+      background: linear-gradient(135deg, #FF6B35, #FF9800);
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .banner::after {
+      content: '🛵';
+      position: absolute;
+      right: 16px;
+      bottom: 10px;
+      font-size: 60px;
+      opacity: 0.25;
+    }
+    .banner-badge {
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      width: fit-content;
+    }
+    .banner-title {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+    .banner-sub {
+      color: rgba(255,255,255,0.85);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+    .banner-dots {
+      display: flex;
+      gap: 5px;
+      margin-top: 14px;
+    }
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.4);
+    }
+    .dot.active {
+      background: #fff;
+      width: 18px;
+    }
+
+    /* ── SECTION ── */
+    .section { margin-bottom: 16px; }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 2px;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--dark);
+    }
+    .see-all { font-size: 13px; color: var(--primary); font-weight: 600; }
+
+    /* ── STATS ROW ── */
+    .stats-card {
+      background: #fff;
+      border-radius: 16px;
+      display: flex;
+      elevation: 3;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .stat {
+      flex: 1;
+      padding: 14px 10px;
+      text-align: center;
+      border-right: 1px solid #F5F5F5;
+    }
+    .stat:last-child { border-right: none; }
+    .stat-icon { font-size: 20px; margin-bottom: 4px; }
+    .stat-num { font-size: 20px; font-weight: 800; color: var(--primary); }
+    .stat-label { font-size: 10px; color: var(--gray); margin-top: 2px; }
+
+    /* ── CATEGORY CHIPS ── */
+    .cat-row {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .cat-row::-webkit-scrollbar { display: none; }
+    .cat-chip {
+      background: #fff;
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 68px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .cat-emoji { font-size: 22px; }
+    .cat-label { font-size: 11px; font-weight: 600; color: var(--dark); }
+
+    /* ── FOOD CARDS ── */
+    .food-row {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .food-row::-webkit-scrollbar { display: none; }
+    .food-card {
+      width: 140px;
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    .food-img {
+      width: 140px; height: 110px;
+      background: linear-gradient(135deg, #FFE0CC, #FFCBA4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 44px;
+      position: relative;
+    }
+    .food-body { padding: 10px; }
+    .food-name { font-size: 12px; font-weight: 700; color: var(--dark); min-height: 32px; }
+    .food-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .food-price { font-size: 13px; font-weight: 700; color: var(--primary); }
+    .add-btn {
+      width: 26px; height: 26px;
+      background: var(--primary);
+      border-radius: 13px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18px; font-weight: 300;
+    }
+
+    /* ── DOWNLOAD SECTION ── */
+    .download-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+    .download-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 4px;
+    }
+    .download-sub {
+      font-size: 13px;
+      color: var(--gray);
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-android {
+      background: linear-gradient(135deg, #34A853, #1a7a35);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(52,168,83,0.3);
+    }
+    .btn-ios {
+      background: linear-gradient(135deg, #1a1a2e, #383858);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .btn-icon { font-size: 26px; }
+    .btn-text { text-align: left; flex: 1; }
+    .btn-text small { display: block; font-size: 11px; opacity: 0.75; font-weight: 400; margin-top: 1px; }
+    .btn-arrow { font-size: 18px; opacity: 0.6; }
+
+    /* ── QR ── */
+    .qr-wrap {
+      background: var(--light-gray);
+      border-radius: 16px;
+      padding: 20px 16px;
+      text-align: center;
+      margin-top: 4px;
+    }
+    .qr-label {
+      font-size: 12px;
+      color: var(--gray);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 14px;
+    }
+    #qrcode { display: flex; justify-content: center; margin-bottom: 10px; }
+    #qrcode canvas, #qrcode img {
+      border-radius: 12px;
+      border: 3px solid var(--primary);
+      padding: 6px;
+      background: white;
+    }
+    .qr-hint { font-size: 11px; color: #aaa; }
+
+    /* ── FEATURE LIST ── */
+    .feature-list { display: flex; flex-direction: column; gap: 12px; }
+    .feature-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .feature-icon {
+      width: 44px; height: 44px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .feature-text {}
+    .feature-title { font-size: 14px; font-weight: 700; color: var(--dark); }
+    .feature-desc { font-size: 12px; color: var(--gray); margin-top: 2px; }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #fff;
+      border-top: 1px solid #F0F0F0;
+      display: flex;
+      padding: 8px 0 20px;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+      z-index: 100;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+    }
+    .nav-icon { font-size: 22px; }
+    .nav-label { font-size: 10px; color: #bbb; font-weight: 500; }
+    .nav-item.active .nav-icon { filter: none; }
+    .nav-item.active .nav-label { color: var(--primary); font-weight: 700; }
+    .nav-active-dot {
+      width: 4px; height: 4px;
+      background: var(--primary);
+      border-radius: 2px;
+      margin-top: -2px;
+    }
+
+    /* ── ORDER CARD ── */
+    .order-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .order-img {
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #FFE0CC, #FFCBA4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .order-info { flex: 1; }
+    .order-name { font-size: 14px; font-weight: 700; color: var(--dark); }
+    .order-addr { font-size: 11px; color: var(--gray); margin-top: 3px; }
+    .order-status {
+      background: #E8F5E9;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 11px;
+      color: #ccc;
+    }
+
+    /* Responsive desktop */
+    @media (min-width: 480px) {
+      body { background: #E8E8E8; }
+      .phone-frame {
+        max-width: 390px;
+        margin: 20px auto;
+        background: var(--bg);
+        border-radius: 40px;
+        overflow: hidden;
+        box-shadow: 0 40px 100px rgba(0,0,0,0.35);
+        position: relative;
+        min-height: 90vh;
+      }
+      .bottom-nav {
+        position: sticky;
+        border-radius: 0 0 40px 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="status-time" id="clock">9:41</span>
+      <div class="status-icons">
+        <span>📶</span>
+        <span>🔋</span>
+      </div>
+    </div>
+
+    <!-- App Header -->
+    <div class="app-header">
+      <div class="header-top">
+        <div class="header-logo">
+          <div class="logo-icon">🛵</div>
+          <span class="logo-name">ShipFood</span>
+        </div>
+        <div class="header-cart">🛒</div>
+      </div>
+      <div class="header-greeting">Xin chào! 👋</div>
+      <div class="header-title">Hôm nay ăn gì?</div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-wrap">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <span class="search-text">Tìm món ăn ngon...</span>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+
+      <!-- Banner -->
+      <div class="section">
+        <div class="banner">
+          <div class="banner-badge">🔥 Ưu đãi mới</div>
+          <div class="banner-title">Đặt ngay —<br>Giao siêu tốc!</div>
+          <div class="banner-sub">Theo dõi đơn hàng GPS realtime</div>
+          <div class="banner-dots">
+            <div class="dot active"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-card">
+        <div class="stat">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-num">15'</div>
+          <div class="stat-label">Giao nhanh</div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">📍</div>
+          <div class="stat-num">GPS</div>
+          <div class="stat-label">Realtime</div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">🔔</div>
+          <div class="stat-num">Live</div>
+          <div class="stat-label">Thông báo</div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-num">5.0</div>
+          <div class="stat-label">Đánh giá</div>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="section">
+        <div class="section-title" style="margin-bottom:10px">Danh mục</div>
+        <div class="cat-row">
+          <div class="cat-chip"><span class="cat-emoji">🍚</span><span class="cat-label">Cơm</span></div>
+          <div class="cat-chip"><span class="cat-emoji">🍜</span><span class="cat-label">Phở</span></div>
+          <div class="cat-chip"><span class="cat-emoji">🍝</span><span class="cat-label">Bún</span></div>
+          <div class="cat-chip"><span class="cat-emoji">🥖</span><span class="cat-label">Bánh mì</span></div>
+          <div class="cat-chip"><span class="cat-emoji">🧋</span><span class="cat-label">Đồ uống</span></div>
+          <div class="cat-chip"><span class="cat-emoji">🍮</span><span class="cat-label">Tráng miệng</span></div>
+        </div>
+      </div>
+
+      <!-- Hot items -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">🔥 Món bán chạy</div>
+          <div class="see-all">Xem tất cả</div>
+        </div>
+        <div class="food-row">
+          <div class="food-card">
+            <div class="food-img">🍜</div>
+            <div class="food-body">
+              <div class="food-name">Phở bò đặc biệt</div>
+              <div class="food-foot">
+                <div class="food-price">45.000đ</div>
+                <div class="add-btn">+</div>
+              </div>
+            </div>
+          </div>
+          <div class="food-card">
+            <div class="food-img">🍚</div>
+            <div class="food-body">
+              <div class="food-name">Cơm sườn bì chả</div>
+              <div class="food-foot">
+                <div class="food-price">40.000đ</div>
+                <div class="add-btn">+</div>
+              </div>
+            </div>
+          </div>
+          <div class="food-card">
+            <div class="food-img">🥖</div>
+            <div class="food-body">
+              <div class="food-name">Bánh mì thịt nướng</div>
+              <div class="food-foot">
+                <div class="food-price">25.000đ</div>
+                <div class="add-btn">+</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent orders mockup -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">📦 Đơn gần đây</div>
+          <div class="see-all">Xem tất cả</div>
+        </div>
+        <div class="order-card">
+          <div class="order-img">🍜</div>
+          <div class="order-info">
+            <div class="order-name">Phở bò + Nước ngọt</div>
+            <div class="order-addr">📍 123 Nguyễn Trãi</div>
+          </div>
+          <div class="order-status">Đã giao</div>
+        </div>
+        <div class="order-card">
+          <div class="order-img">🍚</div>
+          <div class="order-info">
+            <div class="order-name">Cơm sườn × 2</div>
+            <div class="order-addr">📍 45 Lê Lợi</div>
+          </div>
+          <div class="order-status">Đã giao</div>
+        </div>
+      </div>
+
+      <!-- Download Section -->
+      <div class="section">
+        <div class="download-card">
+          <div class="download-title">📲 Tải ShipFood ngay!</div>
+          <div class="download-sub">Đặt đồ ăn nhanh — Ship tận nơi</div>
+
+          <a class="btn btn-android" id="btn-android" href="#">
+            <span class="btn-icon">🤖</span>
+            <div class="btn-text">
+              Tải cho Android
+              <small>Tải file APK trực tiếp · Miễn phí</small>
+            </div>
+            <span class="btn-arrow">›</span>
+          </a>
+
+          <a class="btn btn-ios" id="btn-ios" href="#">
+            <span class="btn-icon">🍎</span>
+            <div class="btn-text">
+              App Store (iOS)
+              <small>iPhone &amp; iPad · Miễn phí</small>
+            </div>
+            <span class="btn-arrow">›</span>
+          </a>
+
+          <div class="qr-wrap">
+            <div class="qr-label">📱 Hoặc quét QR</div>
+            <div id="qrcode"></div>
+            <div class="qr-hint">Dùng camera điện thoại quét mã</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div class="section">
+        <div class="section-title" style="margin-bottom:12px">✨ Tính năng nổi bật</div>
+        <div class="feature-list">
+          <div class="feature-row">
+            <div class="feature-icon" style="background:#FFF3EE">📍</div>
+            <div class="feature-text">
+              <div class="feature-title">Theo dõi GPS realtime</div>
+              <div class="feature-desc">Biết chính xác shipper đang ở đâu</div>
+            </div>
+          </div>
+          <div class="feature-row">
+            <div class="feature-icon" style="background:#E8F5E9">🔔</div>
+            <div class="feature-text">
+              <div class="feature-title">Thông báo tức thì</div>
+              <div class="feature-desc">Cập nhật trạng thái đơn hàng ngay lập tức</div>
+            </div>
+          </div>
+          <div class="feature-row">
+            <div class="feature-icon" style="background:#E3F2FD">🏪</div>
+            <div class="feature-text">
+              <div class="feature-title">Nhiều quán liên kết</div>
+              <div class="feature-desc">Đa dạng món ăn từ các quán xung quanh</div>
+            </div>
+          </div>
+          <div class="feature-row">
+            <div class="feature-icon" style="background:#FFF8E1">⭐</div>
+            <div class="feature-text">
+              <div class="feature-title">Đánh giá món ăn</div>
+              <div class="feature-desc">Chia sẻ trải nghiệm sau mỗi đơn hàng</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">ShipFood © 2026 · Phát triển bởi Nguyen Viet Cong</div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+      <div class="nav-item active">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label" style="color:var(--primary)">Trang chủ</span>
+        <div class="nav-active-dot"></div>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">🍽️</span>
+        <span class="nav-label">Thực đơn</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">Giỏ hàng</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Đơn hàng</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Tài khoản</span>
+      </div>
+    </div>
+
+  </div><!-- end phone-frame -->
+
+  <script>
+    const APK_URL = "https://expo.dev/artifacts/eas/B9LarqGqCNYRQHLtWvcRZ5UbPB-Mgqy8ME1TuHWC-1c.apk";
+    const APPSTORE_URL = "https://apps.apple.com/vn/app/shipfood-giao-%C4%91%E1%BB%93-%C4%83n/id6784744162";
+
+    document.getElementById("btn-android").href = APK_URL;
+    document.getElementById("btn-ios").href = APPSTORE_URL;
+
+    // QR trỏ về trang này (tự redirect theo device)
+    new QRCode(document.getElementById("qrcode"), {
+      text: window.location.href,
+      width: 160,
+      height: 160,
+      colorDark: "#FF6B35",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent =
+        now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
+
+    // Auto redirect theo device
+    const ua = navigator.userAgent;
+    if (/android/i.test(ua)) window.location.href = APK_URL;
+    else if (/iphone|ipad|ipod/i.test(ua)) window.location.href = APPSTORE_URL;
+  </script>
+</body>
+</html>
