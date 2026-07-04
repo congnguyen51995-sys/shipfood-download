@@ -74,7 +74,6 @@ export const AppProvider = ({ children }) => {
     { id: 'b2', title: '⚡ Đặt nhanh – Nhận nhanh', subtitle: 'Giao hàng trong 30 phút', bgColor: '#E91E8C', enabled: true },
     { id: 'b3', title: '🕖 Mở cửa 7h – 22h', subtitle: 'Phục vụ mỗi ngày kể cả cuối tuần', bgColor: '#1565C0', enabled: true },
     { id: 'b4', title: '💳 Thanh toán tiền mặt', subtitle: 'Trả tiền khi nhận hàng, an toàn tiện lợi', bgColor: '#2E7D32', enabled: true },
-    { id: 'b5', title: '🎉 Miễn phí ship đơn đầu tiên!', subtitle: 'Đặt thử ngay – hoàn toàn miễn phí vận chuyển', bgColor: '#F44336', enabled: true },
     { id: 'b6', title: '🏷️ Giảm ngay 5.000đ', subtitle: 'Áp dụng cho khách đặt lần đầu tiên', bgColor: '#9C27B0', enabled: true },
     { id: 'b7', title: '🎁 Đơn trên 100k tặng món kèm', subtitle: 'Đặt đơn từ 100.000đ – nhận ngay 1 món miễn phí!', bgColor: '#E65100', enabled: true },
   ];
