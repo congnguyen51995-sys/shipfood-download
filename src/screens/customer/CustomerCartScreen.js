@@ -21,7 +21,6 @@ export default function CustomerCartScreen({ navigation }) {
   const cartTotal = getCartTotal(currentUser.id);
 
   const FIRST_ORDER_DISCOUNT = 5000;
-  const FREE_SHIP_THRESHOLD = 300000;
   const isFirstOrder = getUserOrders(currentUser.id).filter(o => o.status !== 'Đã hủy').length === 0;
   const discount = isFirstOrder ? FIRST_ORDER_DISCOUNT : 0;
 
@@ -31,10 +30,8 @@ export default function CustomerCartScreen({ navigation }) {
         savedLocation.latitude, savedLocation.longitude
       )
     : null;
-  const rawShippingFee = distanceKm !== null ? getShippingFee(distanceKm) : getShippingFee(1);
-  const outOfRange = rawShippingFee === null;
-  const hasFreeShip = cartTotal >= FREE_SHIP_THRESHOLD;
-  const shippingFee = hasFreeShip ? 0 : rawShippingFee;
+  const shippingFee = distanceKm !== null ? getShippingFee(distanceKm) : getShippingFee(1);
+  const outOfRange = shippingFee === null;
   const isNightRate = new Date().getHours() >= 17;
   const totalAmount = cartTotal + shippingFee - discount;
 
@@ -213,15 +210,13 @@ export default function CustomerCartScreen({ navigation }) {
           <View style={styles.billRow}>
             <View>
               <Text style={styles.billLabel}>Phí giao hàng</Text>
-              {hasFreeShip && <Text style={styles.freeShipNote}>🚀 Miễn phí ship đơn trên 300k!</Text>}
-              {!hasFreeShip && distanceKm !== null && !outOfRange && <Text style={styles.distanceNote}>{distanceKm.toFixed(1)} km từ quán</Text>}
-              {!hasFreeShip && distanceKm !== null && outOfRange && <Text style={[styles.distanceNote, { color: COLORS.danger, fontWeight: '600' }]}>⚠ {distanceKm.toFixed(1)} km — Ngoài vùng giao (tối đa 10 km)</Text>}
-              {!hasFreeShip && distanceKm === null && <Text style={styles.distanceNote}>Chọn GPS để tính chính xác</Text>}
-              {!hasFreeShip && isNightRate && !outOfRange && <Text style={[styles.distanceNote, { color: '#FF9800' }]}>🌙 Phụ phí sau 17h: +5.000đ</Text>}
-              {!hasFreeShip && cartTotal > 0 && <Text style={styles.freeShipHint}>Thêm {formatCurrency(FREE_SHIP_THRESHOLD - cartTotal)} để miễn phí ship</Text>}
+              {distanceKm !== null && !outOfRange && <Text style={styles.distanceNote}>{distanceKm.toFixed(1)} km từ quán</Text>}
+              {distanceKm !== null && outOfRange && <Text style={[styles.distanceNote, { color: COLORS.danger, fontWeight: '600' }]}>⚠ {distanceKm.toFixed(1)} km — Ngoài vùng giao (tối đa 10 km)</Text>}
+              {distanceKm === null && <Text style={styles.distanceNote}>Chọn GPS để tính chính xác</Text>}
+              {isNightRate && !outOfRange && <Text style={[styles.distanceNote, { color: '#FF9800' }]}>🌙 Phụ phí sau 17h: +5.000đ</Text>}
             </View>
-            <Text style={[styles.billVal, outOfRange && !hasFreeShip && { color: COLORS.danger }, hasFreeShip && { color: '#00897B', fontWeight: 'bold' }]}>
-              {outOfRange && !hasFreeShip ? 'Không giao' : hasFreeShip ? 'Miễn phí' : formatCurrency(shippingFee)}
+            <Text style={[styles.billVal, outOfRange && { color: COLORS.danger }]}>
+              {outOfRange ? 'Không giao' : formatCurrency(shippingFee)}
             </Text>
           </View>
           {!outOfRange && (
@@ -350,8 +345,6 @@ const styles = StyleSheet.create({
   discountLabelRow: { flex: 1 },
   discountLabel: { fontSize: 13, color: '#4CAF50', fontWeight: '600' },
   discountVal: { fontSize: 14, fontWeight: 'bold', color: '#4CAF50' },
-  freeShipNote: { fontSize: 11, color: '#00897B', fontWeight: '600', marginTop: 2 },
-  freeShipHint: { fontSize: 11, color: '#FF9800', marginTop: 2 },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: COLORS.lightGray },
   orderBtn: { backgroundColor: COLORS.primary, borderRadius: 14, padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   orderBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },

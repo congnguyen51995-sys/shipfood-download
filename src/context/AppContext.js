@@ -77,7 +77,6 @@ export const AppProvider = ({ children }) => {
     { id: 'b5', title: '🎉 Miễn phí ship đơn đầu tiên!', subtitle: 'Đặt thử ngay – hoàn toàn miễn phí vận chuyển', bgColor: '#F44336', enabled: true },
     { id: 'b6', title: '🏷️ Giảm ngay 5.000đ', subtitle: 'Áp dụng cho khách đặt lần đầu tiên', bgColor: '#9C27B0', enabled: true },
     { id: 'b7', title: '🎁 Đơn trên 100k tặng món kèm', subtitle: 'Đặt đơn từ 100.000đ – nhận ngay 1 món miễn phí!', bgColor: '#E65100', enabled: true },
-    { id: 'b8', title: '🚀 Miễn phí ship đơn trên 300k!', subtitle: 'Đặt đơn từ 300.000đ – ship 0đ, giao tận nơi', bgColor: '#00897B', enabled: true },
   ];
   const [adBanners, setAdBannersState] = useState(DEFAULT_AD_BANNERS);
 
@@ -409,7 +408,6 @@ export const AppProvider = ({ children }) => {
 
   // ── ORDERS (Firebase) ─────────────────────────────────────
   const FIRST_ORDER_DISCOUNT = 5000;
-  const FREE_SHIP_THRESHOLD = 300000;
 
   const placeOrder = async (userId, userName, userPhone, deliveryAddress, deliveryLocation, note = '', shippingFee = 15000, distanceKm = null, paymentMethod = 'cash') => {
     const cart = getCart(userId);
@@ -418,8 +416,6 @@ export const AppProvider = ({ children }) => {
 
     const isFirstOrder = allOrders.filter(o => o.userId === userId && o.status !== 'Đã hủy').length === 0;
     const discount = isFirstOrder ? FIRST_ORDER_DISCOUNT : 0;
-    const hasFreeShip = total >= FREE_SHIP_THRESHOLD;
-    const finalShippingFee = hasFreeShip ? 0 : shippingFee;
 
     // Nếu giỏ hàng có món từ shop, tách thành shopId/shopName để shipper biết lấy ở đâu
     const shopItemInCart = cart.find(i => i.shopId);
@@ -440,7 +436,7 @@ export const AppProvider = ({ children }) => {
       })),
       total,
       discount,
-      shippingFee: finalShippingFee,
+      shippingFee,
       distanceKm: distanceKm !== null ? Math.round(distanceKm * 10) / 10 : null,
       deliveryAddress,
       deliveryLocation: deliveryLocation || null,
