@@ -9,7 +9,7 @@ import { formatCurrency, COLORS, getDistance, getShippingFee } from '../../utils
 import { Ionicons } from '@expo/vector-icons';
 
 export default function CustomerCartScreen({ navigation }) {
-  const { getCart, getCartTotal, getCartCount, addToCart, removeFromCart, clearCart, placeOrder, getItemTotalPrice, restaurantInfo, bankInfo } = useApp();
+  const { getCart, getCartTotal, getCartCount, addToCart, removeFromCart, clearCart, placeOrder, getItemTotalPrice, restaurantInfo, bankInfo, getUserOrders } = useApp();
   const { currentUser } = useAuth();
   const [address, setAddress] = useState('');
   const [savedLocation, setSavedLocation] = useState(null);
@@ -20,6 +20,10 @@ export default function CustomerCartScreen({ navigation }) {
   const cart = getCart(currentUser.id);
   const cartTotal = getCartTotal(currentUser.id);
 
+  const FIRST_ORDER_DISCOUNT = 5000;
+  const isFirstOrder = getUserOrders(currentUser.id).filter(o => o.status !== 'Đã hủy').length === 0;
+  const discount = isFirstOrder ? FIRST_ORDER_DISCOUNT : 0;
+
   const distanceKm = savedLocation && restaurantInfo.location
     ? getDistance(
         restaurantInfo.location.latitude, restaurantInfo.location.longitude,
@@ -29,7 +33,7 @@ export default function CustomerCartScreen({ navigation }) {
   const shippingFee = distanceKm !== null ? getShippingFee(distanceKm) : getShippingFee(1);
   const outOfRange = shippingFee === null;
   const isNightRate = new Date().getHours() >= 17;
-  const totalAmount = cartTotal + shippingFee;
+  const totalAmount = cartTotal + shippingFee - discount;
 
   const getQrUrl = (amount, orderId) => {
     if (!bankInfo?.bankId || !bankInfo?.accountNo) return null;
@@ -46,7 +50,7 @@ export default function CustomerCartScreen({ navigation }) {
     const payLabel = paymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt khi nhận hàng';
     Alert.alert(
       'Xác nhận đặt hàng',
-      `Tổng: ${formatCurrency(totalAmount)}\nPhí ship: ${formatCurrency(shippingFee)}${distanceKm !== null ? ` (${distanceKm.toFixed(1)}km)` : ''}${isNightRate ? ' · Có phụ phí 17h' : ''}\nGiao đến: ${address}\nThanh toán: ${payLabel}`,
+      `Tổng: ${formatCurrency(totalAmount)}${isFirstOrder ? `\n🎉 Đã giảm ${formatCurrency(discount)} đơn đầu tiên` : ''}\nPhí ship: ${formatCurrency(shippingFee)}${distanceKm !== null ? ` (${distanceKm.toFixed(1)}km)` : ''}${isNightRate ? ' · Có phụ phí 17h' : ''}\nGiao đến: ${address}\nThanh toán: ${payLabel}`,
       [
         { text: 'Hủy' },
         {
@@ -195,6 +199,14 @@ export default function CustomerCartScreen({ navigation }) {
             <Text style={styles.billLabel}>Tạm tính</Text>
             <Text style={styles.billVal}>{formatCurrency(cartTotal)}</Text>
           </View>
+          {isFirstOrder && (
+            <View style={styles.billRow}>
+              <View style={styles.discountLabelRow}>
+                <Text style={styles.discountLabel}>🎉 Giảm giá đơn đầu tiên</Text>
+              </View>
+              <Text style={styles.discountVal}>-{formatCurrency(discount)}</Text>
+            </View>
+          )}
           <View style={styles.billRow}>
             <View>
               <Text style={styles.billLabel}>Phí giao hàng</Text>
@@ -330,6 +342,9 @@ const styles = StyleSheet.create({
   distanceNote: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
   billTotalLabel: { fontSize: 15, fontWeight: 'bold', color: COLORS.dark },
   billTotalVal: { fontSize: 15, fontWeight: 'bold', color: COLORS.primary },
+  discountLabelRow: { flex: 1 },
+  discountLabel: { fontSize: 13, color: '#4CAF50', fontWeight: '600' },
+  discountVal: { fontSize: 14, fontWeight: 'bold', color: '#4CAF50' },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: COLORS.lightGray },
   orderBtn: { backgroundColor: COLORS.primary, borderRadius: 14, padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   orderBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },

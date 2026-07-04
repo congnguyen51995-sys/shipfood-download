@@ -407,10 +407,15 @@ export const AppProvider = ({ children }) => {
     getCart(userId).reduce((sum, item) => sum + item.quantity, 0);
 
   // ── ORDERS (Firebase) ─────────────────────────────────────
+  const FIRST_ORDER_DISCOUNT = 5000;
+
   const placeOrder = async (userId, userName, userPhone, deliveryAddress, deliveryLocation, note = '', shippingFee = 15000, distanceKm = null, paymentMethod = 'cash') => {
     const cart = getCart(userId);
     if (cart.length === 0) return null;
     const total = getCartTotal(userId);
+
+    const isFirstOrder = allOrders.filter(o => o.userId === userId && o.status !== 'Đã hủy').length === 0;
+    const discount = isFirstOrder ? FIRST_ORDER_DISCOUNT : 0;
 
     // Nếu giỏ hàng có món từ shop, tách thành shopId/shopName để shipper biết lấy ở đâu
     const shopItemInCart = cart.find(i => i.shopId);
@@ -430,6 +435,7 @@ export const AppProvider = ({ children }) => {
         shopName: item.shopName || null,
       })),
       total,
+      discount,
       shippingFee,
       distanceKm: distanceKm !== null ? Math.round(distanceKm * 10) / 10 : null,
       deliveryAddress,
