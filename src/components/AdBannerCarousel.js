@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
 
 const SCREEN_W = Dimensions.get('window').width - 24;
-const INTERVAL = 5000;
+const INTERVAL = 2800;
 
 export default function AdBannerCarousel({ banners }) {
   const active = banners.filter(b => b.enabled);
