@@ -16,7 +16,11 @@ export default function AdBannerCarousel({ banners }) {
         Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start();
-      setIndex(i => (i + 1) % active.length);
+      setIndex(i => {
+        let next;
+        do { next = Math.floor(Math.random() * active.length); } while (active.length > 1 && next === i);
+        return next;
+      });
     }, INTERVAL);
     return () => clearInterval(timer);
   }, [active.length]);
