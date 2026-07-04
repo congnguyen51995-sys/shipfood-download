@@ -2159,27 +2159,6 @@ function renderAdmUsers(codes){
       </div>
     </div>
 
-    <!-- Ship payment tracking -->
-    <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,.07)">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="font-size:16px">👛</span>
-        <span style="font-size:14px;font-weight:700">Thu tiền Ship từ Shipper</span>
-      </div>
-      <div style="display:flex;gap:10px">
-        <div style="flex:1;background:#E8F5E9;border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:20px;margin-bottom:4px">✅</div>
-          <div style="font-size:12px;color:var(--gray);font-weight:600">Đã thu</div>
-          <div style="font-size:16px;font-weight:700;color:#2E7D32;margin:4px 0">${fmt(collectedFee)}</div>
-          <div style="font-size:11px;color:var(--gray)">${collectedOrders.length} đơn</div>
-        </div>
-        <div style="flex:1;background:#FFF3E0;border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:20px;margin-bottom:4px">⏳</div>
-          <div style="font-size:12px;color:var(--gray);font-weight:600">Chưa thu</div>
-          <div style="font-size:16px;font-weight:700;color:#E65100;margin:4px 0">${fmt(pendingFee)}</div>
-          <div style="font-size:11px;color:var(--gray)">${pendingOrders.length} đơn</div>
-        </div>
-      </div>
-    </div>
 
     <!-- Registration codes -->
     <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,.07)">
