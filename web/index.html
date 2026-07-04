@@ -2648,6 +2648,9 @@ async function renderLanding(){
       <!-- Search results -->
       <div id="lpSearchResults" style="display:none;background:#fff;margin:0 12px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.12);max-height:50vh;overflow-y:auto;position:relative;z-index:40"></div>
 
+      <!-- Ad Banner Carousel -->
+      <div id="lpAdBanner" style="margin:10px 12px 0;position:relative"></div>
+
       <!-- Main content -->
       <div id="lpMain">
         <!-- Danh mục -->
@@ -2760,7 +2763,43 @@ async function renderLanding(){
     const all=window._lpAllItems||[];
     const btn=document.getElementById('lpMenuToggle');
     if(btn&&all.length<=8)btn.style.display='none';
+    // start ad banner carousel
+    startLpBanners();
   }catch(e){console.error(e);document.getElementById('landingPage').innerHTML='<div style="text-align:center;padding:60px;color:var(--gray)">Lỗi tải trang</div>';}
+}
+
+const LP_BANNERS=[
+  {title:'🛵 Giao hàng tận nơi',sub:'Phí ship từ 5.000đ · Phạm vi 10km',bg:'#FF6B35'},
+  {title:'⚡ Đặt nhanh – Nhận nhanh',sub:'Giao hàng trong 30 phút',bg:'#E91E8C'},
+  {title:'🕖 Mở cửa 7h – 22h',sub:'Phục vụ mỗi ngày kể cả cuối tuần',bg:'#1565C0'},
+  {title:'💳 Thanh toán tiền mặt',sub:'Trả tiền khi nhận hàng, an toàn tiện lợi',bg:'#2E7D32'},
+  {title:'🎟️ Voucher 5.000đ cho khách mới!',sub:'Tự động áp dụng khi đặt đơn đầu tiên',bg:'#9C27B0'},
+  {title:'🎁 Đơn trên 100k tặng món kèm',sub:'Đặt đơn từ 100.000đ – nhận ngay 1 món miễn phí!',bg:'#E65100'},
+];
+
+function startLpBanners(){
+  const wrap=document.getElementById('lpAdBanner');
+  if(!wrap)return;
+  let cur=0;
+  const render=()=>{
+    const b=LP_BANNERS[cur];
+    wrap.innerHTML=`<div style="background:${b.bg};border-radius:14px;padding:14px 18px;transition:opacity .3s">
+      <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:3px">${b.title}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.85)">${b.sub}</div>
+      <div style="display:flex;justify-content:center;gap:6px;margin-top:10px">
+        ${LP_BANNERS.map((_,i)=>`<div style="width:${i===cur?16:6}px;height:6px;border-radius:3px;background:${i===cur?'#fff':'rgba(255,255,255,.4)'}"></div>`).join('')}
+      </div>
+    </div>`;
+  };
+  render();
+  if(window._lpBannerTimer)clearInterval(window._lpBannerTimer);
+  window._lpBannerTimer=setInterval(()=>{
+    let next;
+    do{next=Math.floor(Math.random()*LP_BANNERS.length);}while(LP_BANNERS.length>1&&next===cur);
+    cur=next;
+    wrap.style.opacity='0';
+    setTimeout(()=>{render();wrap.style.opacity='1';},300);
+  },2800);
 }
 
 window.lpToggleMenu=function(){
