@@ -202,7 +202,7 @@ export default function CustomerCartScreen({ navigation }) {
           {isFirstOrder && (
             <View style={styles.billRow}>
               <View style={styles.discountLabelRow}>
-                <Text style={styles.discountLabel}>🎉 Giảm giá đơn đầu tiên</Text>
+                <Text style={styles.discountLabel}>🎟️ Voucher khách mới</Text>
               </View>
               <Text style={styles.discountVal}>-{formatCurrency(discount)}</Text>
             </View>
