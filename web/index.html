@@ -825,12 +825,14 @@ async function setupOrderNotifications(){
     query(collection(db,'orders'),orderBy('createdAt','desc')),
     (snap)=>{
       const count=snap.size;
+      // Always keep allOrders up to date
+      allOrders=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(_prevOrderCount===-1){_prevOrderCount=count;return;}// first load, don't notify
       if(count>_prevOrderCount){
         const newest=snap.docs[0]?.data()||{};
-        const customer=newest.customerName||'Khách';
+        const customer=newest.userName||newest.customerName||'Khách';
         const items=newest.items?.length||0;
-        const amount=new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(newest.totalAmount||0);
+        const amount=new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format((newest.total||newest.totalAmount||0)+(newest.shippingFee||0));
         // In-app toast
         showToast(`🛵 Đơn mới từ ${customer} • ${items} món • ${amount}`);
         // Browser notification
@@ -970,7 +972,7 @@ window.showPg=function(name){
   if(name==='adm-orders'){admOrderFilter='Tất cả';loadAdmOrders();}
   if(name==='adm-menu')loadAdmMenu();
   if(name==='adm-users')loadAdmUsers();
-  if(name==='adm-revenue'){admPeriod='day';renderPeriodRow('admPeriodRow','adm');loadRevenue('admRevenueBody',null,admPeriod);}
+  if(name==='adm-revenue'){admPeriod='year';renderPeriodRow('admPeriodRow','adm');loadRevenue('admRevenueBody',null,admPeriod);}
   if(name==='shop-orders'){shopOrderFilter='Tất cả';loadShopOrders();}
   if(name==='shop-menu')loadShopMenu();
   if(name==='shop-revenue'){shopPeriod='day';renderPeriodRow('shopPeriodRow','shop');loadRevenue('shopRevenueBody',user.id,shopPeriod);}
