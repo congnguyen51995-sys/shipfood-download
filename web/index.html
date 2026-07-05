@@ -2352,6 +2352,53 @@ window.loadRevenue=async function(elId,shopId,period){
     const count=orders.length;
     const avg=count?Math.round(total/count):0;
     const ship=orders.reduce((s,o)=>s+(o.shippingFee||o.shipFee||0),0);
+    const PLATFORM_FEE=2000;
+    // shop breakdown (admin only)
+    let shopTableHtml='';
+    if(!shopId&&count>0){
+      const shopMap={};
+      orders.forEach(o=>{
+        const key=o.shopId||'__platform__';
+        const name=o.shopName||(o.shopId?o.shopId:'ShipFood');
+        if(!shopMap[key])shopMap[key]={name,orders:0,food:0,platform:0,ship:0};
+        shopMap[key].orders++;
+        shopMap[key].food+=(o.total||o.totalAmount||0);
+        shopMap[key].platform+=PLATFORM_FEE;
+        shopMap[key].ship+=(o.shippingFee||o.shipFee||0);
+      });
+      const shops=Object.values(shopMap).sort((a,b)=>b.food-a.food);
+      const fmtK=v=>v>=1000000?(v/1000000).toFixed(1)+'M':Math.round(v/1000)+'k';
+      shopTableHtml=`
+        <div class="sec-hd" style="margin-top:16px"><div class="sec-title">🏪 Doanh thu theo shop</div></div>
+        <div style="background:#fff;border-radius:12px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="background:#F5F5F5">
+              <th style="padding:10px 8px;text-align:left;font-weight:600;color:#555">#</th>
+              <th style="padding:10px 8px;text-align:left;font-weight:600;color:#555">Tên shop</th>
+              <th style="padding:10px 8px;text-align:center;font-weight:600;color:#555">Đơn</th>
+              <th style="padding:10px 8px;text-align:right;font-weight:600;color:#FF9800">Món</th>
+              <th style="padding:10px 8px;text-align:right;font-weight:600;color:#E91E63">Sàn</th>
+              <th style="padding:10px 8px;text-align:right;font-weight:600;color:#9C27B0">Ship</th>
+            </tr></thead>
+            <tbody>
+              ${shops.map((sh,i)=>`<tr style="border-top:1px solid #F0F0F0">
+                <td style="padding:9px 8px;color:${i<3?'#fff':'#999'};background:${i<3?'#2196F3':'#eee'};border-radius:50%;width:22px;height:22px;text-align:center;font-size:11px;font-weight:bold">${i+1}</td>
+                <td style="padding:9px 8px;font-weight:600;color:#222;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sh.name}</td>
+                <td style="padding:9px 8px;text-align:center;color:#555">${sh.orders}</td>
+                <td style="padding:9px 8px;text-align:right;color:#FF9800;font-weight:600">${fmtK(sh.food)}</td>
+                <td style="padding:9px 8px;text-align:right;color:#E91E63;font-weight:600">${fmtK(sh.platform)}</td>
+                <td style="padding:9px 8px;text-align:right;color:#9C27B0;font-weight:600">${fmtK(sh.ship)}</td>
+              </tr>`).join('')}
+              <tr style="border-top:2px solid #E0E0E0;background:#FAFAFA;font-weight:bold">
+                <td colspan="3" style="padding:9px 8px;color:#555">Tổng cộng</td>
+                <td style="padding:9px 8px;text-align:right;color:#FF9800">${fmt(shops.reduce((s,x)=>s+x.food,0))}</td>
+                <td style="padding:9px 8px;text-align:right;color:#E91E63">${fmt(shops.reduce((s,x)=>s+x.platform,0))}</td>
+                <td style="padding:9px 8px;text-align:right;color:#9C27B0">${fmt(shops.reduce((s,x)=>s+x.ship,0))}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>`;
+    }
     el.innerHTML=`
       <div class="stats-grid">
         <div class="stat"><div class="stat-val">${fmt(total)}</div><div class="stat-label">Tổng doanh thu</div></div>
@@ -2359,6 +2406,7 @@ window.loadRevenue=async function(elId,shopId,period){
         <div class="stat"><div class="stat-val">${fmt(avg)}</div><div class="stat-label">Trung bình/đơn</div></div>
         <div class="stat"><div class="stat-val">${fmt(ship)}</div><div class="stat-label">Phí ship</div></div>
       </div>
+      ${shopTableHtml}
       ${count?`<div class="sec-hd"><div class="sec-title">Đơn hoàn thành</div></div>${orders.map(o=>ocard(o,false,false)).join('')}`:'<div class="empty"><div class="empty-icon">📊</div><p>Chưa có doanh thu</p></div>'}
     `;
   }catch(e){el.innerHTML=`<div class="empty"><p>Lỗi tải dữ liệu: ${e.message}</p></div>`;}
