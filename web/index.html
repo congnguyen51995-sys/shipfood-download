@@ -2327,32 +2327,41 @@ window.setPeriod=function(role,p,el){
   if(role==='adm'){admPeriod=p;document.querySelectorAll('#admPeriodRow .ptab').forEach(t=>t.classList.remove('on'));el.classList.add('on');loadRevenue('admRevenueBody',null,p);}
   else{shopPeriod=p;document.querySelectorAll('#shopPeriodRow .ptab').forEach(t=>t.classList.remove('on'));el.classList.add('on');loadRevenue('shopRevenueBody',user.id,p);}
 };
-window.loadRevenue=function(elId,shopId,period){
+window.loadRevenue=async function(elId,shopId,period){
   const el=document.getElementById(elId);
-  const now=new Date();
-  let orders=allOrders.filter(o=>o.status==='Đã giao');
-  if(shopId)orders=orders.filter(o=>o.shopId===shopId);
-  orders=orders.filter(o=>{
-    const raw=o.createdAt;
-    const d=raw?.toDate?raw.toDate():new Date(raw);
-    if(period==='day')return d.toDateString()===now.toDateString();
-    if(period==='week'){const s=new Date(now);s.setDate(now.getDate()-7);return d>=s;}
-    if(period==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
-    return d.getFullYear()===now.getFullYear();
-  });
-  const total=orders.reduce((s,o)=>s+(o.total||o.totalAmount||0),0);
-  const count=orders.length;
-  const avg=count?Math.round(total/count):0;
-  const ship=orders.reduce((s,o)=>s+(o.shippingFee||o.shipFee||0),0);
-  el.innerHTML=`
-    <div class="stats-grid">
-      <div class="stat"><div class="stat-val">${fmt(total)}</div><div class="stat-label">Tổng doanh thu</div></div>
-      <div class="stat"><div class="stat-val">${count}</div><div class="stat-label">Số đơn hoàn thành</div></div>
-      <div class="stat"><div class="stat-val">${fmt(avg)}</div><div class="stat-label">Trung bình/đơn</div></div>
-      <div class="stat"><div class="stat-val">${fmt(ship)}</div><div class="stat-label">Phí ship</div></div>
-    </div>
-    ${count?`<div class="sec-hd"><div class="sec-title">Đơn hoàn thành</div></div>${orders.map(o=>ocard(o,false,false)).join('')}`:'<div class="empty"><div class="empty-icon">📊</div><p>Chưa có doanh thu</p></div>'}
-  `;
+  el.innerHTML='<div class="loading"><div class="spin"></div></div>';
+  try{
+    const snap=await getDocs(collection(db,'orders'));
+    const now=new Date();
+    let orders=snap.docs.map(d=>({id:d.id,...d.data()})).filter(o=>o.status==='Đã giao');
+    if(shopId)orders=orders.filter(o=>o.shopId===shopId);
+    orders=orders.filter(o=>{
+      const raw=o.createdAt;
+      const d=raw?.toDate?raw.toDate():new Date(raw);
+      if(period==='day')return d.toDateString()===now.toDateString();
+      if(period==='week'){const s=new Date(now);s.setDate(now.getDate()-7);return d>=s;}
+      if(period==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+      return d.getFullYear()===now.getFullYear();
+    });
+    orders.sort((a,b)=>{
+      const da=a.createdAt?.toDate?a.createdAt.toDate():new Date(a.createdAt);
+      const db2=b.createdAt?.toDate?b.createdAt.toDate():new Date(b.createdAt);
+      return db2-da;
+    });
+    const total=orders.reduce((s,o)=>s+(o.total||o.totalAmount||0),0);
+    const count=orders.length;
+    const avg=count?Math.round(total/count):0;
+    const ship=orders.reduce((s,o)=>s+(o.shippingFee||o.shipFee||0),0);
+    el.innerHTML=`
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-val">${fmt(total)}</div><div class="stat-label">Tổng doanh thu</div></div>
+        <div class="stat"><div class="stat-val">${count}</div><div class="stat-label">Số đơn hoàn thành</div></div>
+        <div class="stat"><div class="stat-val">${fmt(avg)}</div><div class="stat-label">Trung bình/đơn</div></div>
+        <div class="stat"><div class="stat-val">${fmt(ship)}</div><div class="stat-label">Phí ship</div></div>
+      </div>
+      ${count?`<div class="sec-hd"><div class="sec-title">Đơn hoàn thành</div></div>${orders.map(o=>ocard(o,false,false)).join('')}`:'<div class="empty"><div class="empty-icon">📊</div><p>Chưa có doanh thu</p></div>'}
+    `;
+  }catch(e){el.innerHTML=`<div class="empty"><p>Lỗi tải dữ liệu: ${e.message}</p></div>`;}
 };
 
 // ── PROFILE ───────────────────────────────
