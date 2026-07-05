@@ -317,7 +317,7 @@ export const AppProvider = ({ children }) => {
       await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(valid.map(to => ({ to, title, body, sound: 'default', priority: 'high' }))),
+        body: JSON.stringify(valid.map(to => ({ to, title, body, sound: 'default', priority: 'high', channelId: 'orders' }))),
       });
     } catch (e) { console.log('sendPush error:', e); }
   };
