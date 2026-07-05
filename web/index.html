@@ -2357,18 +2357,35 @@ window.loadRevenue=async function(elId,shopId,period){
     const avg=count?Math.round(total/count):0;
     const ship=orders.reduce((s,o)=>s+(o.shippingFee||o.shipFee||0),0);
     const PLATFORM_FEE=2000;
-    // shop breakdown (admin only)
+    // shop breakdown (admin only) — tính theo item.shopId để tránh gộp nhiều shop 1 đơn
+    const calcItemsByShop=(items,targetShopId)=>{
+      if(!items||!items.length)return 0;
+      return items
+        .filter(i=>targetShopId==='__platform__'?(!i.shopId):i.shopId===targetShopId)
+        .reduce((s,i)=>s+(i.price+((i.selectedToppings||[]).reduce((t,tp)=>t+tp.price,0)))*(i.quantity||1),0);
+    };
     let shopTableHtml='';
     if(!shopId&&count>0){
       const shopMap={};
       orders.forEach(o=>{
-        const key=o.shopId||'__platform__';
-        const name=o.shopName||(o.shopId?o.shopId:'ShipFood');
-        if(!shopMap[key])shopMap[key]={name,orders:0,food:0,platform:0,ship:0};
-        shopMap[key].orders++;
-        shopMap[key].food+=calcFood(o);
-        shopMap[key].platform+=PLATFORM_FEE;
-        shopMap[key].ship+=(o.shippingFee||o.shipFee||0);
+        // Gộp từng item vào đúng shop của nó
+        const allItems=o.items||[];
+        const shopIds=[...new Set(allItems.map(i=>i.shopId||'__platform__'))];
+        if(shopIds.length===0)shopIds.push(o.shopId||'__platform__');
+        shopIds.forEach(key=>{
+          const name=key==='__platform__'?'ShipFood':(allItems.find(i=>i.shopId===key)?.shopName||key);
+          if(!shopMap[key])shopMap[key]={name,orders:0,food:0,platform:0,ship:0};
+          const itemFood=calcItemsByShop(allItems,key);
+          if(itemFood>0||allItems.length===0){
+            shopMap[key].orders++;
+            shopMap[key].food+=itemFood||calcFood(o);
+            shopMap[key].platform+=PLATFORM_FEE;
+          }
+        });
+        // ship thuộc về shop chính của đơn
+        const shipKey=o.shopId||'__platform__';
+        if(shopMap[shipKey])shopMap[shipKey].ship+=(o.shippingFee||o.shipFee||0);
+        else{if(!shopMap[shipKey])shopMap[shipKey]={name:shipKey==='__platform__'?'ShipFood':o.shopName||shipKey,orders:0,food:0,platform:0,ship:0};shopMap[shipKey].ship+=(o.shippingFee||o.shipFee||0);}
       });
       const shops=Object.values(shopMap).sort((a,b)=>b.food-a.food);
       const fmtK=v=>v>=1000000?(v/1000000).toFixed(1)+'M':Math.round(v/1000)+'k';

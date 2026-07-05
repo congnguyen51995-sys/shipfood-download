@@ -172,18 +172,35 @@ export default function RevenueScreen() {
   const platformProfit = isAdmin ? platformFeeTotal + shipProfit : 0;
   const shipperSalaryTotal = isAdmin ? Math.round(shipRevenue * SHIPPER_RATIO) : 0;
 
-  // Admin: thống kê từng shop
+  // Admin: thống kê từng shop — tính theo item.shopId để tránh gộp nhiều shop 1 đơn
+  const calcItemsByShop = (items, targetShopId) => {
+    if (!items || !items.length) return 0;
+    return items
+      .filter(i => targetShopId === '__platform__' ? !i.shopId : i.shopId === targetShopId)
+      .reduce((s, i) => s + (i.price + (i.selectedToppings || []).reduce((t, tp) => t + tp.price, 0)) * (i.quantity || 1), 0);
+  };
+
   const shopStats = useMemo(() => {
     if (!isAdmin) return [];
     const map = {};
     periodOrders.forEach(o => {
-      const key = o.shopId || '__platform__';
-      const name = o.shopName || (o.shopId ? o.shopId : 'ShipFood');
-      if (!map[key]) map[key] = { id: key, name, orders: 0, foodRevenue: 0, platformRevenue: 0, shipRevenue: 0 };
-      map[key].orders += 1;
-      map[key].foodRevenue += calcFood(o);
-      map[key].platformRevenue += PLATFORM_FEE;
-      map[key].shipRevenue += (o.shippingFee || 0);
+      const allItems = o.items || [];
+      const shopIds = [...new Set(allItems.map(i => i.shopId || '__platform__'))];
+      if (shopIds.length === 0) shopIds.push(o.shopId || '__platform__');
+      shopIds.forEach(key => {
+        const name = key === '__platform__' ? 'ShipFood' : (allItems.find(i => i.shopId === key)?.shopName || key);
+        if (!map[key]) map[key] = { id: key, name, orders: 0, foodRevenue: 0, platformRevenue: 0, shipRevenue: 0 };
+        const itemFood = calcItemsByShop(allItems, key);
+        if (itemFood > 0 || allItems.length === 0) {
+          map[key].orders += 1;
+          map[key].foodRevenue += itemFood || calcFood(o);
+          map[key].platformRevenue += PLATFORM_FEE;
+        }
+      });
+      // ship tính vào shop chính của đơn
+      const shipKey = o.shopId || '__platform__';
+      if (!map[shipKey]) map[shipKey] = { id: shipKey, name: shipKey === '__platform__' ? 'ShipFood' : (o.shopName || shipKey), orders: 0, foodRevenue: 0, platformRevenue: 0, shipRevenue: 0 };
+      map[shipKey].shipRevenue += (o.shippingFee || 0);
     });
     return Object.values(map).sort((a, b) => b.foodRevenue - a.foodRevenue);
   }, [periodOrders, isAdmin]);
