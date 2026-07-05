@@ -66,6 +66,13 @@ function periodLabel(period, base) {
 
 const toDate = (ts) => ts?.toDate ? ts.toDate() : new Date(ts);
 
+const calcFood = (o) => {
+  if (o.items && o.items.length > 0) {
+    return o.items.reduce((s, i) => s + (i.price + (i.selectedToppings || []).reduce((t, tp) => t + tp.price, 0)) * (i.quantity || 1), 0);
+  }
+  return o.total || 0;
+};
+
 // Chia nhỏ theo ngày/tuần để vẽ biểu đồ cột
 function getChartBars(period, orders, base, shopId) {
   const s = startOf(period, base);
@@ -86,7 +93,7 @@ function getChartBars(period, orders, base, shopId) {
       const label = `${String(h).padStart(2, '0')}h`;
       const total = filtered
         .filter(o => toDate(o.createdAt).getHours() >= h && toDate(o.createdAt).getHours() < h + 3)
-        .reduce((s, o) => s + (o.total || 0) + (o.shippingFee || 0), 0);
+        .reduce((s, o) => s + calcFood(o) + (o.shippingFee || 0), 0);
       bars.push({ label, total });
     }
   } else if (period === 'Tuần') {
@@ -98,7 +105,7 @@ function getChartBars(period, orders, base, shopId) {
       const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
       const total = filtered
         .filter(o => { const t = toDate(o.createdAt); return t >= dayStart && t <= dayEnd; })
-        .reduce((s, o) => s + (o.total || 0) + (o.shippingFee || 0), 0);
+        .reduce((s, o) => s + calcFood(o) + (o.shippingFee || 0), 0);
       bars.push({ label: days[i], total });
     }
   } else if (period === 'Tháng') {
@@ -150,7 +157,7 @@ export default function RevenueScreen() {
     });
   }, [allOrders, period, base, shopId]);
 
-  const foodRevenue = periodOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const foodRevenue = periodOrders.reduce((sum, o) => sum + calcFood(o), 0);
   const shipRevenue = periodOrders.reduce((sum, o) => sum + (o.shippingFee || 0), 0);
   const totalRevenue = foodRevenue + shipRevenue;
   const orderCount = periodOrders.length;
@@ -164,6 +171,22 @@ export default function RevenueScreen() {
   const shipProfit = isAdmin ? Math.round(shipRevenue * (1 - SHIPPER_RATIO)) : 0;
   const platformProfit = isAdmin ? platformFeeTotal + shipProfit : 0;
   const shipperSalaryTotal = isAdmin ? Math.round(shipRevenue * SHIPPER_RATIO) : 0;
+
+  // Admin: thống kê từng shop
+  const shopStats = useMemo(() => {
+    if (!isAdmin) return [];
+    const map = {};
+    periodOrders.forEach(o => {
+      const key = o.shopId || '__platform__';
+      const name = o.shopName || (o.shopId ? o.shopId : 'ShipFood');
+      if (!map[key]) map[key] = { id: key, name, orders: 0, foodRevenue: 0, platformRevenue: 0, shipRevenue: 0 };
+      map[key].orders += 1;
+      map[key].foodRevenue += calcFood(o);
+      map[key].platformRevenue += PLATFORM_FEE;
+      map[key].shipRevenue += (o.shippingFee || 0);
+    });
+    return Object.values(map).sort((a, b) => b.foodRevenue - a.foodRevenue);
+  }, [periodOrders, isAdmin]);
 
   // Admin: thống kê từng shipper
   const shipperStats = useMemo(() => {
@@ -289,6 +312,47 @@ export default function RevenueScreen() {
               </View>
             </View>
 
+            {/* Doanh thu từng shop */}
+            {shopStats.length > 0 && (
+              <View style={styles.shopCard}>
+                <View style={styles.topHeader}>
+                  <Ionicons name="storefront-outline" size={17} color="#2196F3" />
+                  <Text style={styles.topTitle}>Doanh thu theo shop</Text>
+                </View>
+                <View style={styles.shopTableHead}>
+                  <Text style={[styles.shopCol, { flex: 3, textAlign: 'left' }]}>Tên shop</Text>
+                  <Text style={styles.shopCol}>Đơn</Text>
+                  <Text style={[styles.shopCol, { color: '#FF9800' }]}>Món</Text>
+                  <Text style={[styles.shopCol, { color: '#E91E63' }]}>Sàn</Text>
+                  <Text style={[styles.shopCol, { color: '#9C27B0' }]}>Ship</Text>
+                </View>
+                {shopStats.map((sh, i) => {
+                  const fmt = v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : Math.round(v/1000)+'k';
+                  return (
+                    <View key={sh.id} style={styles.shopRow}>
+                      <View style={[styles.shopRank, { backgroundColor: i < 3 ? '#2196F3' : '#E0E0E0' }]}>
+                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: i < 3 ? '#fff' : '#888' }}>#{i+1}</Text>
+                      </View>
+                      <Text style={[styles.shopCol, { flex: 3, color: COLORS.dark, fontWeight: '600', textAlign: 'left' }]} numberOfLines={1}>{sh.name}</Text>
+                      <Text style={styles.shopCol}>{sh.orders}</Text>
+                      <Text style={[styles.shopCol, { color: '#FF9800', fontWeight: '600' }]}>{fmt(sh.foodRevenue)}</Text>
+                      <Text style={[styles.shopCol, { color: '#E91E63', fontWeight: '600' }]}>{fmt(sh.platformRevenue)}</Text>
+                      <Text style={[styles.shopCol, { color: '#9C27B0', fontWeight: '600' }]}>{fmt(sh.shipRevenue)}</Text>
+                    </View>
+                  );
+                })}
+                <View style={styles.shopTotal}>
+                  <Ionicons name="storefront-outline" size={13} color={COLORS.gray} />
+                  <Text style={styles.shopTotalLabel}>  Món: </Text>
+                  <Text style={[styles.shopTotalVal, { color: '#FF9800' }]}>{formatCurrency(shopStats.reduce((s,x)=>s+x.foodRevenue,0))}</Text>
+                  <Text style={styles.shopTotalLabel}>  Sàn: </Text>
+                  <Text style={[styles.shopTotalVal, { color: '#E91E63' }]}>{formatCurrency(shopStats.reduce((s,x)=>s+x.platformRevenue,0))}</Text>
+                  <Text style={styles.shopTotalLabel}>  Ship: </Text>
+                  <Text style={[styles.shopTotalVal, { color: '#9C27B0' }]}>{formatCurrency(shopStats.reduce((s,x)=>s+x.shipRevenue,0))}</Text>
+                </View>
+              </View>
+            )}
+
             {/* Bảng lương từng shipper */}
             {shipperStats.length > 0 && (
               <View style={styles.shipperCard}>
@@ -413,6 +477,14 @@ const styles = StyleSheet.create({
   shipperTableHead: { flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#EEE', marginBottom: 4 },
   shipperRow: { flexDirection: 'row', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F5F5F5', alignItems: 'center' },
   shipperCol: { flex: 1, fontSize: 12, color: COLORS.gray, textAlign: 'center' },
+  shopCard: { backgroundColor: '#fff', margin: 12, borderRadius: 14, padding: 14, elevation: 2, marginTop: 0 },
+  shopTableHead: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#EEE', marginBottom: 4 },
+  shopRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F5F5F5', gap: 4 },
+  shopCol: { flex: 1, fontSize: 12, color: COLORS.gray, textAlign: 'center' },
+  shopRank: { width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 4 },
+  shopTotal: { flexDirection: 'row', alignItems: 'center', paddingTop: 10, marginTop: 6, borderTopWidth: 1, borderTopColor: '#EEE' },
+  shopTotalLabel: { fontSize: 12, color: COLORS.gray },
+  shopTotalVal: { fontSize: 14, fontWeight: 'bold' },
   topCard: { backgroundColor: '#fff', margin: 12, borderRadius: 14, padding: 14, elevation: 2, marginTop: 0 },
   topHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   topTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.dark },

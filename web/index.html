@@ -2348,7 +2348,11 @@ window.loadRevenue=async function(elId,shopId,period){
       const db2=b.createdAt?.toDate?b.createdAt.toDate():new Date(b.createdAt);
       return db2-da;
     });
-    const total=orders.reduce((s,o)=>s+(o.total||o.totalAmount||0),0);
+    const calcFood=o=>{
+      if(o.items&&o.items.length>0)return o.items.reduce((s,i)=>s+(i.price+((i.selectedToppings||[]).reduce((t,tp)=>t+tp.price,0)))*(i.quantity||1),0);
+      return o.total||o.totalAmount||0;
+    };
+    const total=orders.reduce((s,o)=>s+calcFood(o),0);
     const count=orders.length;
     const avg=count?Math.round(total/count):0;
     const ship=orders.reduce((s,o)=>s+(o.shippingFee||o.shipFee||0),0);
@@ -2362,7 +2366,7 @@ window.loadRevenue=async function(elId,shopId,period){
         const name=o.shopName||(o.shopId?o.shopId:'ShipFood');
         if(!shopMap[key])shopMap[key]={name,orders:0,food:0,platform:0,ship:0};
         shopMap[key].orders++;
-        shopMap[key].food+=(o.total||o.totalAmount||0);
+        shopMap[key].food+=calcFood(o);
         shopMap[key].platform+=PLATFORM_FEE;
         shopMap[key].ship+=(o.shippingFee||o.shipFee||0);
       });
