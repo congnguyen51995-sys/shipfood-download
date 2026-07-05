@@ -2331,16 +2331,17 @@ window.loadRevenue=function(elId,shopId,period){
   let orders=allOrders.filter(o=>o.status==='Đã giao');
   if(shopId)orders=orders.filter(o=>o.shopId===shopId);
   orders=orders.filter(o=>{
-    const d=new Date(o.createdAt);
+    const raw=o.createdAt;
+    const d=raw?.toDate?raw.toDate():new Date(raw);
     if(period==='day')return d.toDateString()===now.toDateString();
     if(period==='week'){const s=new Date(now);s.setDate(now.getDate()-7);return d>=s;}
     if(period==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
     return d.getFullYear()===now.getFullYear();
   });
-  const total=orders.reduce((s,o)=>s+(o.totalAmount||0),0);
+  const total=orders.reduce((s,o)=>s+(o.total||o.totalAmount||0),0);
   const count=orders.length;
   const avg=count?Math.round(total/count):0;
-  const ship=orders.reduce((s,o)=>s+(o.shipFee||0),0);
+  const ship=orders.reduce((s,o)=>s+(o.shippingFee||o.shipFee||0),0);
   el.innerHTML=`
     <div class="stats-grid">
       <div class="stat"><div class="stat-val">${fmt(total)}</div><div class="stat-label">Tổng doanh thu</div></div>
