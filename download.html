@@ -645,10 +645,26 @@
             <span class="btn-arrow">›</span>
           </a>
 
-          <div class="qr-wrap">
-            <div class="qr-label">📱 Hoặc quét QR</div>
-            <div id="qrcode"></div>
-            <div class="qr-hint">Dùng camera điện thoại quét mã</div>
+          <div class="qr-wrap" style="background:#F8F8F8;border-radius:16px;padding:16px;margin-top:4px">
+            <div class="qr-label" style="font-size:12px;color:#888;font-weight:700;text-align:center;margin-bottom:14px;letter-spacing:0.5px">📱 QUÉT QR ĐỂ TẢI NGAY</div>
+            <div style="display:flex;gap:12px;justify-content:center;align-items:flex-start">
+              <div style="flex:1;text-align:center">
+                <div style="background:#fff;border-radius:12px;padding:8px;border:2px solid #34A853;display:inline-block;margin-bottom:6px">
+                  <div id="qrcode-android"></div>
+                </div>
+                <div style="font-size:11px;font-weight:700;color:#34A853">🤖 Android</div>
+                <div style="font-size:10px;color:#999;margin-top:2px">Tải APK trực tiếp</div>
+              </div>
+              <div style="width:1px;background:#E0E0E0;align-self:stretch;margin:8px 0"></div>
+              <div style="flex:1;text-align:center">
+                <div style="background:#fff;border-radius:12px;padding:8px;border:2px solid #1a1a2e;display:inline-block;margin-bottom:6px">
+                  <div id="qrcode-ios"></div>
+                </div>
+                <div style="font-size:11px;font-weight:700;color:#1a1a2e">🍎 iPhone / iPad</div>
+                <div style="font-size:10px;color:#999;margin-top:2px">App Store</div>
+              </div>
+            </div>
+            <div style="text-align:center;font-size:10px;color:#bbb;margin-top:12px">Dùng camera điện thoại quét mã QR</div>
           </div>
         </div>
       </div>
@@ -725,12 +741,21 @@
     document.getElementById("btn-android").href = APK_URL;
     document.getElementById("btn-ios").href = APPSTORE_URL;
 
-    // QR trỏ về trang này (tự redirect theo device)
-    new QRCode(document.getElementById("qrcode"), {
-      text: window.location.href,
-      width: 160,
-      height: 160,
-      colorDark: "#FF6B35",
+    // QR Android → APK trực tiếp
+    new QRCode(document.getElementById("qrcode-android"), {
+      text: APK_URL,
+      width: 120,
+      height: 120,
+      colorDark: "#34A853",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    // QR iOS → App Store
+    new QRCode(document.getElementById("qrcode-ios"), {
+      text: APPSTORE_URL,
+      width: 120,
+      height: 120,
+      colorDark: "#1a1a2e",
       colorLight: "#ffffff",
       correctLevel: QRCode.CorrectLevel.H
     });
