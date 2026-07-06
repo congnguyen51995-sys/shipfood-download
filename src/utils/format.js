@@ -39,6 +39,20 @@ export const getDistance = (lat1, lon1, lat2, lon2) => {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
+// Phụ phí lấy hàng theo khoảng cách shop → shipper
+export const getPickupSurcharge = (shopDistanceKm) => {
+  if (!shopDistanceKm) return 0;
+  if (shopDistanceKm <= 5) return 0;
+  if (shopDistanceKm <= 7) return 5000;
+  return 7000; // 7–10km
+};
+
+// Shop xa >5km chỉ nhận đơn trước 19h
+export const isShopAvailable = (shopDistanceKm) => {
+  if (!shopDistanceKm || shopDistanceKm <= 5) return true;
+  return new Date().getHours() < 19;
+};
+
 export const getShippingFee = (distanceKm) => {
   const now = new Date();
   const nightSurcharge = now.getHours() >= 17 ? 5000 : 0; // sau 17h +5000

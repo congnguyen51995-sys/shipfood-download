@@ -5,11 +5,11 @@ import {
 } from 'react-native';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { formatCurrency, COLORS, getDistance, getShippingFee } from '../../utils/format';
+import { formatCurrency, COLORS, getDistance, getShippingFee, getPickupSurcharge, isShopAvailable } from '../../utils/format';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function CustomerCartScreen({ navigation }) {
-  const { getCart, getCartTotal, getCartCount, addToCart, removeFromCart, clearCart, placeOrder, getItemTotalPrice, restaurantInfo, bankInfo, getUserOrders } = useApp();
+  const { getCart, getCartTotal, getCartCount, addToCart, removeFromCart, clearCart, placeOrder, getItemTotalPrice, restaurantInfo, bankInfo, getUserOrders, linkedShops } = useApp();
   const { currentUser } = useAuth();
   const [address, setAddress] = useState('');
   const [savedLocation, setSavedLocation] = useState(null);
@@ -33,7 +33,20 @@ export default function CustomerCartScreen({ navigation }) {
   const shippingFee = distanceKm !== null ? getShippingFee(distanceKm) : getShippingFee(1);
   const outOfRange = shippingFee === null;
   const isNightRate = new Date().getHours() >= 17;
-  const totalAmount = cartTotal + shippingFee - discount;
+
+  // Tính phụ phí lấy hàng nếu cart có món từ shop liên kết xa
+  const cartShopId = cart.find(i => i.shopId)?.shopId || null;
+  const cartShop = cartShopId ? linkedShops.find(s => s.id === cartShopId) : null;
+  const shopDistanceKm = cartShop?.location && restaurantInfo.location
+    ? getDistance(
+        restaurantInfo.location.latitude, restaurantInfo.location.longitude,
+        cartShop.location.latitude, cartShop.location.longitude
+      )
+    : null;
+  const pickupSurcharge = getPickupSurcharge(shopDistanceKm);
+  const shopUnavailable = !isShopAvailable(shopDistanceKm);
+
+  const totalAmount = cartTotal + (shippingFee || 0) + pickupSurcharge - discount;
 
   const getQrUrl = (amount, orderId) => {
     if (!bankInfo?.bankId || !bankInfo?.accountNo) return null;
@@ -46,11 +59,13 @@ export default function CustomerCartScreen({ navigation }) {
     if (cart.length === 0) return Alert.alert('Giỏ hàng trống');
     if (!address.trim()) return Alert.alert('Thiếu địa chỉ', 'Vui lòng nhập địa chỉ giao hàng');
     if (outOfRange) return Alert.alert('Ngoài vùng giao hàng', 'Xin lỗi, chúng tôi chỉ giao trong phạm vi 10 km.');
+    if (shopUnavailable) return Alert.alert('Shop đã đóng đặt đơn', `Quán này chỉ nhận đơn trước 19:00 tối.\nVui lòng đặt lại vào sáng/chiều mai.`);
 
     const payLabel = paymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt khi nhận hàng';
+    const surchargeNote = pickupSurcharge > 0 ? `\nPhụ phí lấy hàng: +${formatCurrency(pickupSurcharge)}` : '';
     Alert.alert(
       'Xác nhận đặt hàng',
-      `Tổng: ${formatCurrency(totalAmount)}${isFirstOrder ? `\n🎉 Đã giảm ${formatCurrency(discount)} đơn đầu tiên` : ''}\nPhí ship: ${formatCurrency(shippingFee)}${distanceKm !== null ? ` (${distanceKm.toFixed(1)}km)` : ''}${isNightRate ? ' · Có phụ phí 17h' : ''}\nGiao đến: ${address}\nThanh toán: ${payLabel}`,
+      `Tổng: ${formatCurrency(totalAmount)}${isFirstOrder ? `\n🎉 Đã giảm ${formatCurrency(discount)} đơn đầu tiên` : ''}\nPhí ship: ${formatCurrency(shippingFee)}${distanceKm !== null ? ` (${distanceKm.toFixed(1)}km)` : ''}${isNightRate ? ' · Có phụ phí 17h' : ''}${surchargeNote}\nGiao đến: ${address}\nThanh toán: ${payLabel}`,
       [
         { text: 'Hủy' },
         {
@@ -58,7 +73,7 @@ export default function CustomerCartScreen({ navigation }) {
           onPress: async () => {
             const order = await placeOrder(
               currentUser.id, currentUser.name, currentUser.phone || '',
-              address, savedLocation, note, shippingFee, distanceKm, paymentMethod
+              address, savedLocation, note, shippingFee + pickupSurcharge, distanceKm, paymentMethod
             );
             if (paymentMethod === 'transfer' && order) {
               setQrModal({ orderId: order.id, amount: totalAmount });
@@ -219,6 +234,16 @@ export default function CustomerCartScreen({ navigation }) {
               {outOfRange ? 'Không giao' : formatCurrency(shippingFee)}
             </Text>
           </View>
+          {pickupSurcharge > 0 && (
+            <View style={styles.billRow}>
+              <View>
+                <Text style={styles.billLabel}>Phụ phí lấy hàng</Text>
+                <Text style={styles.distanceNote}>🛵 Shop cách {shopDistanceKm?.toFixed(1)}km</Text>
+                {shopUnavailable && <Text style={[styles.distanceNote, { color: COLORS.danger, fontWeight: '600' }]}>⚠ Shop chỉ nhận đơn trước 19:00</Text>}
+              </View>
+              <Text style={[styles.billVal, { color: '#FF9800' }]}>+{formatCurrency(pickupSurcharge)}</Text>
+            </View>
+          )}
           {!outOfRange && (
             <View style={[styles.billRow, styles.billTotalRow]}>
               <Text style={styles.billTotalLabel}>Tổng cộng</Text>
