@@ -26,9 +26,10 @@ export default function AdminOrdersScreen() {
 
   const pending = allOrders.filter(o => o.status === 'Chờ xác nhận' || o.status === 'Chờ shop').length;
 
+  const getTs = (o) => { const v = o.createdAt; if (!v) return 0; return v?.toDate ? v.toDate().getTime() : new Date(v).getTime() || 0; };
   const orders = filterStatus === 'Tất cả'
-    ? [...allOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    : [...allOrders].filter(o => o.status === filterStatus).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    ? [...allOrders].sort((a, b) => getTs(b) - getTs(a))
+    : [...allOrders].filter(o => o.status === filterStatus).sort((a, b) => getTs(b) - getTs(a));
 
   const nextStatus = (current) => {
     const idx = ALL_STATUSES.indexOf(current);
@@ -216,13 +217,13 @@ const styles = StyleSheet.create({
   pendingText: { fontSize: 13, color: COLORS.secondary, marginTop: 4 },
   countBadge: { backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
   countText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  filterBar: { backgroundColor: '#fff', maxHeight: 52, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  filterContent: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  filterChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#F5F5F5', gap: 4 },
+  filterBar: { backgroundColor: '#fff', maxHeight: 56, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  filterContent: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' },
+  filterChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#F5F5F5', marginRight: 8 },
   filterChipActive: { backgroundColor: COLORS.primary },
   filterText: { fontSize: 12, color: COLORS.gray, fontWeight: '500' },
   filterTextActive: { color: '#fff', fontWeight: 'bold' },
-  countPill: { backgroundColor: COLORS.lightGray, borderRadius: 10, paddingHorizontal: 5, paddingVertical: 1 },
+  countPill: { backgroundColor: COLORS.lightGray, borderRadius: 10, paddingHorizontal: 5, paddingVertical: 1, marginLeft: 4 },
   countPillActive: { backgroundColor: 'rgba(255,255,255,0.3)' },
   countPillText: { fontSize: 10, color: COLORS.gray, fontWeight: 'bold' },
   countPillTextActive: { color: '#fff' },

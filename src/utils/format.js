@@ -5,8 +5,10 @@ export const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-export const formatDate = (isoString) => {
-  const date = new Date(isoString);
+export const formatDate = (val) => {
+  if (!val) return '';
+  const date = val?.toDate ? val.toDate() : new Date(val);
+  if (isNaN(date.getTime())) return '';
   return date.toLocaleString('vi-VN');
 };
 
