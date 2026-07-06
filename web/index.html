@@ -2420,15 +2420,46 @@ window.loadRevenue=async function(elId,shopId,period){
           </table>
         </div>`;
     }
+    const foodTotal=orders.reduce((s,o)=>s+calcFood(o),0);
+    const platformTotal=shopId?0:count*PLATFORM_FEE;
+    const profit=platformTotal+ship;
     el.innerHTML=`
-      <div class="stats-grid">
-        <div class="stat"><div class="stat-val">${fmt(total)}</div><div class="stat-label">Tổng doanh thu</div></div>
-        <div class="stat"><div class="stat-val">${count}</div><div class="stat-label">Số đơn hoàn thành</div></div>
-        <div class="stat"><div class="stat-val">${fmt(avg)}</div><div class="stat-label">Trung bình/đơn</div></div>
-        <div class="stat"><div class="stat-val">${fmt(ship)}</div><div class="stat-label">Phí ship</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 12px 4px">
+        <div style="background:#fff;border-radius:14px;padding:14px;border-left:4px solid #FF6B35;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+          <div style="font-size:11px;color:#9E9E9E;margin-bottom:6px">Tổng doanh thu</div>
+          <div style="font-size:15px;font-weight:bold;color:#1A1A2E">${fmt(foodTotal+ship)}</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:14px;border-left:4px solid #2196F3;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+          <div style="font-size:11px;color:#9E9E9E;margin-bottom:6px">Số đơn</div>
+          <div style="font-size:15px;font-weight:bold;color:#1A1A2E">${count}</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:14px;border-left:4px solid #FF9800;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+          <div style="font-size:11px;color:#9E9E9E;margin-bottom:6px">Tiền món</div>
+          <div style="font-size:15px;font-weight:bold;color:#FF9800">${fmt(foodTotal)}</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:14px;border-left:4px solid #9C27B0;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+          <div style="font-size:11px;color:#9E9E9E;margin-bottom:6px">Phí ship</div>
+          <div style="font-size:15px;font-weight:bold;color:#9C27B0">${fmt(ship)}</div>
+        </div>
       </div>
+      ${!shopId&&count>0?`
+      <div style="background:#fff;margin:8px 12px;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+        <div style="font-size:14px;font-weight:bold;color:#1A1A2E;margin-bottom:12px">💰 Lợi nhuận nền tảng</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #F5F5F5">
+          <span style="font-size:13px;color:#9E9E9E">Phí sàn (${count} đơn × 2.000đ)</span>
+          <span style="font-size:14px;font-weight:600;color:#E91E63">${fmt(platformTotal)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #F5F5F5">
+          <span style="font-size:13px;color:#9E9E9E">Ship thu từ khách</span>
+          <span style="font-size:14px;font-weight:600;color:#9C27B0">${fmt(ship)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;margin-top:6px;background:#F8FFF8;border-radius:10px">
+          <span style="font-size:14px;font-weight:bold;color:#1A1A2E">Tổng lãi</span>
+          <span style="font-size:16px;font-weight:bold;color:#4CAF50">${fmt(profit)}</span>
+        </div>
+      </div>`:''}
       ${shopTableHtml}
-      ${count?`<div class="sec-hd"><div class="sec-title">Đơn hoàn thành</div></div>${orders.map(o=>ocard(o,false,false)).join('')}`:'<div class="empty"><div class="empty-icon">📊</div><p>Chưa có doanh thu</p></div>'}
+      ${!count?'<div class="empty"><div class="empty-icon">📊</div><p>Chưa có doanh thu</p></div>':''}
     `;
   }catch(e){el.innerHTML=`<div class="empty"><p>Lỗi tải dữ liệu: ${e.message}</p></div>`;}
 };
