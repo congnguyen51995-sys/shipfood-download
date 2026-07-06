@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, StatusBar, TextInput, FlatList, Keyboard,
+  Image, StatusBar, TextInput, FlatList, Keyboard, Modal, Alert,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency, COLORS } from '../../utils/format';
@@ -21,9 +22,50 @@ export default function ShopHomeScreen({ navigation }) {
   const { menuItems, allOrders, addToCart, getCartCount, restaurantInfo, getShopOrders, adBanners, linkedShops, updateLinkedShop } = useApp();
   const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [locationModal, setLocationModal] = useState(false);
+  const [pinning, setPinning] = useState(false);
+  const checkedRef = useRef(false);
 
   const shopDoc = linkedShops.find(s => s.userId === currentUser.id);
   const shopIsOpen = shopDoc?.shopOpen !== false;
+
+  // Nhắc ghim vị trí nếu shop chưa có GPS
+  useEffect(() => {
+    if (checkedRef.current || !shopDoc) return;
+    if (!shopDoc.location) {
+      checkedRef.current = true;
+      setLocationModal(true);
+    }
+  }, [shopDoc]);
+
+  const handlePinLocation = async () => {
+    setPinning(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Cần quyền vị trí', 'Vui lòng cấp quyền GPS để ghim vị trí quán.');
+        setPinning(false);
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const { latitude, longitude } = loc.coords;
+      await updateLinkedShop(shopDoc.id, { location: { latitude, longitude } });
+      setLocationModal(false);
+      Alert.alert('✅ Đã ghim vị trí quán', `Tọa độ: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}\n\nNếu vị trí này chưa đúng, vào Hồ sơ → Cập nhật GPS để sửa lại.`);
+    } catch (e) {
+      Alert.alert('Lỗi', 'Không lấy được vị trí GPS. Vui lòng thử lại.');
+    }
+    setPinning(false);
+  };
+
+  const handleSkipLocation = () => {
+    setLocationModal(false);
+    Alert.alert(
+      '⚠️ Chưa có vị trí quán',
+      'Nếu không ghim vị trí:\n\n• Khách sẽ không đặt được đơn từ quán bạn\n• Shipper không biết đến lấy hàng ở đâu\n\nVui lòng vào Hồ sơ → Ghim GPS quán để cập nhật.',
+      [{ text: 'Đã hiểu' }]
+    );
+  };
 
   const toggleShopOpen = async () => {
     if (!shopDoc) return;
@@ -125,6 +167,38 @@ export default function ShopHomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#2196F3" />
+
+      {/* Modal bắt buộc ghim vị trí quán */}
+      <Modal visible={locationModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <View style={styles.modalIcon}>
+              <Ionicons name="location" size={36} color="#fff" />
+            </View>
+            <Text style={styles.modalTitle}>Ghim vị trí quán</Text>
+            <Text style={styles.modalDesc}>
+              Để khách đặt hàng và shipper đến lấy hàng đúng nơi, bạn cần ghim vị trí GPS của quán.
+            </Text>
+            <View style={styles.modalNote}>
+              <Ionicons name="warning-outline" size={15} color="#FF9800" />
+              <Text style={styles.modalNoteText}>
+                Hãy đứng tại quán khi bấm ghim. Nếu đang ở nhà hoặc nơi khác, vị trí sẽ không chính xác — shipper sẽ đến sai địa điểm.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.modalPinBtn, pinning && { opacity: 0.7 }]}
+              onPress={handlePinLocation}
+              disabled={pinning}
+            >
+              <Ionicons name="locate" size={18} color="#fff" />
+              <Text style={styles.modalPinBtnText}>{pinning ? 'Đang lấy GPS...' : 'Ghim vị trí hiện tại làm vị trí quán'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalSkipBtn} onPress={handleSkipLocation}>
+              <Text style={styles.modalSkipText}>Bỏ qua (khách không đặt được)</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Header */}
       <View style={styles.header}>
@@ -435,4 +509,15 @@ const styles = StyleSheet.create({
   rankNum: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   rankNumText: { fontSize: 11, fontWeight: 'bold' },
   rankName: { flex: 1, fontSize: 13, fontWeight: '600', color: '#222' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalBox: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', alignItems: 'center' },
+  modalIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.dark, marginBottom: 10, textAlign: 'center' },
+  modalDesc: { fontSize: 14, color: '#555', textAlign: 'center', lineHeight: 22, marginBottom: 14 },
+  modalNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: '#FFF3E0', borderRadius: 10, padding: 12, marginBottom: 20 },
+  modalNoteText: { flex: 1, fontSize: 13, color: '#E65100', lineHeight: 20 },
+  modalPinBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 20, width: '100%', justifyContent: 'center', marginBottom: 10 },
+  modalPinBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  modalSkipBtn: { paddingVertical: 10 },
+  modalSkipText: { fontSize: 13, color: COLORS.gray, textDecorationLine: 'underline' },
 });
