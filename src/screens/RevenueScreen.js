@@ -238,167 +238,67 @@ export default function RevenueScreen() {
     return i % 5 === 0;
   };
 
+  const fmtK = v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : Math.round(v / 1000) + 'k';
+
   return (
     <View style={styles.container}>
+      {/* Header + period + navigator */}
       <View style={[styles.header, { backgroundColor: accentColor }]}>
         <Text style={styles.headerTitle}>📊 Doanh thu</Text>
-      </View>
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
-
-        {/* Period selector */}
         <View style={styles.periodRow}>
           {PERIODS.map(p => (
             <TouchableOpacity
               key={p}
-              style={[styles.periodTab, period === p && { backgroundColor: accentColor }]}
+              style={[styles.periodTab, period === p && styles.periodTabActive]}
               onPress={() => { setPeriod(p); setBase(new Date()); }}
             >
-              <Text style={[styles.periodText, period === p && { color: '#fff', fontWeight: 'bold' }]}>{p}</Text>
+              <Text style={[styles.periodText, period === p && styles.periodTextActive]}>{p}</Text>
             </TouchableOpacity>
           ))}
         </View>
-
-        {/* Navigator */}
         <View style={styles.navRow}>
-          <TouchableOpacity style={styles.navBtn} onPress={() => setBase(shiftDate(period, base, -1))}>
-            <Ionicons name="chevron-back" size={22} color={accentColor} />
+          <TouchableOpacity onPress={() => setBase(shiftDate(period, base, -1))} style={styles.navBtn}>
+            <Ionicons name="chevron-back" size={20} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
           <Text style={styles.navLabel}>{periodLabel(period, base)}</Text>
           <TouchableOpacity
-            style={[styles.navBtn, isCurrentPeriod && styles.navBtnDisabled]}
+            style={[styles.navBtn, isCurrentPeriod && { opacity: 0.3 }]}
             onPress={() => !isCurrentPeriod && setBase(shiftDate(period, base, 1))}
           >
-            <Ionicons name="chevron-forward" size={22} color={isCurrentPeriod ? COLORS.lightGray : accentColor} />
+            <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
         </View>
+      </View>
 
-        {/* Summary cards */}
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { borderTopColor: accentColor }]}>
-            <Text style={styles.summaryLabel}>Tổng doanh thu</Text>
-            <Text style={[styles.summaryVal, { color: accentColor }]}>{formatCurrency(totalRevenue)}</Text>
+      <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+
+        {/* 4 số tổng quan */}
+        <View style={styles.statsBlock}>
+          <View style={styles.statsRow}>
+            <View style={[styles.statBox, { borderLeftColor: accentColor }]}>
+              <Text style={styles.statBoxLabel}>Tổng doanh thu</Text>
+              <Text style={[styles.statBoxVal, { color: accentColor }]}>{formatCurrency(totalRevenue)}</Text>
+            </View>
+            <View style={[styles.statBox, { borderLeftColor: '#4CAF50' }]}>
+              <Text style={styles.statBoxLabel}>Số đơn hoàn thành</Text>
+              <Text style={[styles.statBoxVal, { color: '#4CAF50' }]}>{orderCount} đơn</Text>
+            </View>
           </View>
-          <View style={[styles.summaryCard, { borderTopColor: '#4CAF50' }]}>
-            <Text style={styles.summaryLabel}>Số đơn</Text>
-            <Text style={[styles.summaryVal, { color: '#4CAF50' }]}>{orderCount} đơn</Text>
+          <View style={styles.statsRow}>
+            <View style={[styles.statBox, { borderLeftColor: '#FF9800' }]}>
+              <Text style={styles.statBoxLabel}>Tiền món ăn</Text>
+              <Text style={[styles.statBoxVal, { color: '#FF9800' }]}>{formatCurrency(foodRevenue)}</Text>
+            </View>
+            <View style={[styles.statBox, { borderLeftColor: '#9C27B0' }]}>
+              <Text style={styles.statBoxLabel}>Phí ship thu</Text>
+              <Text style={[styles.statBoxVal, { color: '#9C27B0' }]}>{formatCurrency(shipRevenue)}</Text>
+            </View>
           </View>
         </View>
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { borderTopColor: '#FF9800' }]}>
-            <Text style={styles.summaryLabel}>Tiền món ăn</Text>
-            <Text style={[styles.summaryVal, { color: '#FF9800' }]}>{formatCurrency(foodRevenue)}</Text>
-          </View>
-          <View style={[styles.summaryCard, { borderTopColor: '#9C27B0' }]}>
-            <Text style={styles.summaryLabel}>Phí ship</Text>
-            <Text style={[styles.summaryVal, { color: '#9C27B0' }]}>{formatCurrency(shipRevenue)}</Text>
-          </View>
-        </View>
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { borderTopColor: '#009688', flex: 1 }]}>
-            <Text style={styles.summaryLabel}>TB mỗi đơn</Text>
-            <Text style={[styles.summaryVal, { color: '#009688' }]}>{formatCurrency(avgOrder)}</Text>
-          </View>
-        </View>
 
-        {/* Admin: lợi nhuận nền tảng */}
-        {isAdmin && (
-          <>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="wallet-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.sectionTitle}>Lợi nhuận nền tảng</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <View style={[styles.summaryCard, { borderTopColor: '#E91E63' }]}>
-                <Text style={styles.summaryLabel}>Phí sàn (2k/đơn)</Text>
-                <Text style={[styles.summaryVal, { color: '#E91E63' }]}>{formatCurrency(platformFeeTotal)}</Text>
-              </View>
-              <View style={[styles.summaryCard, { borderTopColor: '#673AB7' }]}>
-                <Text style={styles.summaryLabel}>Lãi ship (20%)</Text>
-                <Text style={[styles.summaryVal, { color: '#673AB7' }]}>{formatCurrency(shipProfit)}</Text>
-              </View>
-            </View>
-            <View style={styles.summaryRow}>
-              <View style={[styles.summaryCard, { borderTopColor: '#4CAF50', flex: 1 }]}>
-                <Text style={styles.summaryLabel}>Tổng lợi nhuận sàn</Text>
-                <Text style={[styles.summaryVal, { color: '#4CAF50', fontSize: 18 }]}>{formatCurrency(platformProfit)}</Text>
-              </View>
-              <View style={[styles.summaryCard, { borderTopColor: '#F44336', flex: 1 }]}>
-                <Text style={styles.summaryLabel}>Lương shipper (80%)</Text>
-                <Text style={[styles.summaryVal, { color: '#F44336' }]}>{formatCurrency(shipperSalaryTotal)}</Text>
-              </View>
-            </View>
-
-            {/* Doanh thu từng shop */}
-            {shopStats.length > 0 && (
-              <View style={styles.shopCard}>
-                <View style={styles.topHeader}>
-                  <Ionicons name="storefront-outline" size={17} color="#2196F3" />
-                  <Text style={styles.topTitle}>Doanh thu theo shop</Text>
-                </View>
-                <View style={styles.shopTableHead}>
-                  <Text style={[styles.shopCol, { flex: 3, textAlign: 'left' }]}>Tên shop</Text>
-                  <Text style={styles.shopCol}>Đơn</Text>
-                  <Text style={[styles.shopCol, { color: '#FF9800' }]}>Món</Text>
-                  <Text style={[styles.shopCol, { color: '#E91E63' }]}>Sàn</Text>
-                  <Text style={[styles.shopCol, { color: '#9C27B0' }]}>Ship</Text>
-                </View>
-                {shopStats.map((sh, i) => {
-                  const fmt = v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : Math.round(v/1000)+'k';
-                  return (
-                    <View key={sh.id} style={styles.shopRow}>
-                      <View style={[styles.shopRank, { backgroundColor: i < 3 ? '#2196F3' : '#E0E0E0' }]}>
-                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: i < 3 ? '#fff' : '#888' }}>#{i+1}</Text>
-                      </View>
-                      <Text style={[styles.shopCol, { flex: 3, color: COLORS.dark, fontWeight: '600', textAlign: 'left' }]} numberOfLines={1}>{sh.name}</Text>
-                      <Text style={styles.shopCol}>{sh.orders}</Text>
-                      <Text style={[styles.shopCol, { color: '#FF9800', fontWeight: '600' }]}>{fmt(sh.foodRevenue)}</Text>
-                      <Text style={[styles.shopCol, { color: '#E91E63', fontWeight: '600' }]}>{fmt(sh.platformRevenue)}</Text>
-                      <Text style={[styles.shopCol, { color: '#9C27B0', fontWeight: '600' }]}>{fmt(sh.shipRevenue)}</Text>
-                    </View>
-                  );
-                })}
-                <View style={styles.shopTotal}>
-                  <Ionicons name="storefront-outline" size={13} color={COLORS.gray} />
-                  <Text style={styles.shopTotalLabel}>  Món: </Text>
-                  <Text style={[styles.shopTotalVal, { color: '#FF9800' }]}>{formatCurrency(shopStats.reduce((s,x)=>s+x.foodRevenue,0))}</Text>
-                  <Text style={styles.shopTotalLabel}>  Sàn: </Text>
-                  <Text style={[styles.shopTotalVal, { color: '#E91E63' }]}>{formatCurrency(shopStats.reduce((s,x)=>s+x.platformRevenue,0))}</Text>
-                  <Text style={styles.shopTotalLabel}>  Ship: </Text>
-                  <Text style={[styles.shopTotalVal, { color: '#9C27B0' }]}>{formatCurrency(shopStats.reduce((s,x)=>s+x.shipRevenue,0))}</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Bảng lương từng shipper */}
-            {shipperStats.length > 0 && (
-              <View style={styles.shipperCard}>
-                <View style={styles.topHeader}>
-                  <Ionicons name="bicycle-outline" size={17} color="#FF9800" />
-                  <Text style={styles.topTitle}>Lương shipper kỳ này</Text>
-                </View>
-                <View style={styles.shipperTableHead}>
-                  <Text style={[styles.shipperCol, { flex: 2 }]}>Shipper</Text>
-                  <Text style={styles.shipperCol}>Đơn</Text>
-                  <Text style={styles.shipperCol}>Ship</Text>
-                  <Text style={[styles.shipperCol, { color: '#F44336' }]}>Lương</Text>
-                </View>
-                {shipperStats.map(sh => (
-                  <View key={sh.id} style={styles.shipperRow}>
-                    <Text style={[styles.shipperCol, { flex: 2, color: COLORS.dark, fontWeight: '600' }]} numberOfLines={1}>{sh.name}</Text>
-                    <Text style={styles.shipperCol}>{sh.orders}</Text>
-                    <Text style={styles.shipperCol}>{formatCurrency(sh.shipFee)}</Text>
-                    <Text style={[styles.shipperCol, { color: '#F44336', fontWeight: 'bold' }]}>{formatCurrency(Math.round(sh.shipFee * SHIPPER_RATIO))}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </>
-        )}
-
-        {/* Bar chart */}
+        {/* Biểu đồ */}
         <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Biểu đồ doanh thu</Text>
+          <Text style={styles.chartTitle}>📈 Biểu đồ doanh thu</Text>
           {totalRevenue === 0 ? (
             <View style={styles.emptyChart}>
               <Ionicons name="bar-chart-outline" size={40} color={COLORS.lightGray} />
@@ -408,17 +308,12 @@ export default function RevenueScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.chartArea}>
                 {bars.map((b, i) => {
-                  const heightPct = b.total / maxBar;
-                  const barH = Math.max(heightPct * 140, b.total > 0 ? 4 : 0);
+                  const barH = Math.max((b.total / maxBar) * 140, b.total > 0 ? 4 : 0);
                   return (
                     <View key={i} style={styles.barWrapper}>
                       {b.total > 0 && (
                         <Text style={styles.barTopVal} numberOfLines={1}>
-                          {b.total >= 1000000
-                            ? (b.total / 1000000).toFixed(1) + 'M'
-                            : b.total >= 1000
-                            ? Math.round(b.total / 1000) + 'k'
-                            : b.total}
+                          {b.total >= 1000000 ? (b.total/1000000).toFixed(1)+'M' : b.total >= 1000 ? Math.round(b.total/1000)+'k' : b.total}
                         </Text>
                       )}
                       <View style={styles.barTrack}>
@@ -433,12 +328,72 @@ export default function RevenueScreen() {
           )}
         </View>
 
+        {/* Admin: lợi nhuận gọn */}
+        {isAdmin && (
+          <>
+            <View style={styles.profitCard}>
+              <View style={styles.profitHeader}>
+                <Ionicons name="wallet-outline" size={17} color="#4CAF50" />
+                <Text style={styles.profitTitle}>💰 Lợi nhuận của bạn</Text>
+              </View>
+              <View style={styles.profitRow}>
+                <Text style={styles.profitLabel}>Phí sàn (2.000đ × {orderCount} đơn)</Text>
+                <Text style={[styles.profitVal, { color: '#E91E63' }]}>{formatCurrency(platformFeeTotal)}</Text>
+              </View>
+              <View style={styles.profitRow}>
+                <Text style={styles.profitLabel}>Ship thu được</Text>
+                <Text style={[styles.profitVal, { color: '#9C27B0' }]}>{formatCurrency(shipRevenue)}</Text>
+              </View>
+              <View style={[styles.profitRow, styles.profitTotalRow]}>
+                <Text style={styles.profitTotalLabel}>Tổng lãi kỳ này</Text>
+                <Text style={styles.profitTotalVal}>{formatCurrency(platformFeeTotal + shipRevenue)}</Text>
+              </View>
+            </View>
+
+            {/* Doanh thu từng shop */}
+            {shopStats.length > 0 && (
+              <View style={styles.tableCard}>
+                <View style={styles.tableHeader}>
+                  <Ionicons name="storefront-outline" size={17} color="#2196F3" />
+                  <Text style={styles.tableTitle}>🏪 Doanh thu theo shop</Text>
+                </View>
+                <View style={styles.tableHead}>
+                  <Text style={[styles.tc, { flex: 3, textAlign: 'left' }]}>Shop</Text>
+                  <Text style={styles.tc}>Đơn</Text>
+                  <Text style={[styles.tc, { color: '#FF9800' }]}>Món</Text>
+                  <Text style={[styles.tc, { color: '#E91E63' }]}>Sàn</Text>
+                  <Text style={[styles.tc, { color: '#9C27B0' }]}>Ship</Text>
+                </View>
+                {shopStats.map((sh, i) => (
+                  <View key={sh.id} style={styles.tableRow}>
+                    <View style={[styles.rankDot, { backgroundColor: i < 3 ? '#2196F3' : '#E0E0E0' }]}>
+                      <Text style={{ fontSize: 9, fontWeight: 'bold', color: i < 3 ? '#fff' : '#999' }}>{i+1}</Text>
+                    </View>
+                    <Text style={[styles.tc, { flex: 3, color: COLORS.dark, fontWeight: '600', textAlign: 'left' }]} numberOfLines={1}>{sh.name}</Text>
+                    <Text style={styles.tc}>{sh.orders}</Text>
+                    <Text style={[styles.tc, { color: '#FF9800', fontWeight: '600' }]}>{fmtK(sh.foodRevenue)}</Text>
+                    <Text style={[styles.tc, { color: '#E91E63', fontWeight: '600' }]}>{fmtK(sh.platformRevenue)}</Text>
+                    <Text style={[styles.tc, { color: '#9C27B0', fontWeight: '600' }]}>{fmtK(sh.shipRevenue)}</Text>
+                  </View>
+                ))}
+                <View style={styles.tableFoot}>
+                  <Text style={[styles.tc, { flex: 3, textAlign: 'left', color: COLORS.dark, fontWeight: '700' }]}>Tổng</Text>
+                  <Text style={styles.tc}>{shopStats.reduce((s,x)=>s+x.orders,0)}</Text>
+                  <Text style={[styles.tc, { color: '#FF9800', fontWeight: '700' }]}>{fmtK(shopStats.reduce((s,x)=>s+x.foodRevenue,0))}</Text>
+                  <Text style={[styles.tc, { color: '#E91E63', fontWeight: '700' }]}>{fmtK(shopStats.reduce((s,x)=>s+x.platformRevenue,0))}</Text>
+                  <Text style={[styles.tc, { color: '#9C27B0', fontWeight: '700' }]}>{fmtK(shopStats.reduce((s,x)=>s+x.shipRevenue,0))}</Text>
+                </View>
+              </View>
+            )}
+          </>
+        )}
+
         {/* Top items */}
         {topItems.length > 0 && (
           <View style={styles.topCard}>
             <View style={styles.topHeader}>
               <Ionicons name="trophy-outline" size={17} color="#FF9800" />
-              <Text style={styles.topTitle}>Top món bán chạy</Text>
+              <Text style={styles.topTitle}>🏆 Top món bán chạy</Text>
             </View>
             {topItems.map((item, i) => (
               <View key={item.name} style={styles.topRow}>
@@ -460,49 +415,51 @@ export default function RevenueScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { padding: 16, paddingTop: 52 },
-  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
-  periodRow: {
-    flexDirection: 'row', backgroundColor: '#fff',
-    margin: 12, borderRadius: 14, padding: 4, elevation: 2,
-  },
-  periodTab: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10 },
-  periodText: { fontSize: 14, color: COLORS.gray },
-  navRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, marginBottom: 10 },
-  navBtn: { padding: 6 },
-  navBtnDisabled: { opacity: 0.3 },
-  navLabel: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 'bold', color: COLORS.dark },
-  summaryRow: { flexDirection: 'row', paddingHorizontal: 12, gap: 8, marginBottom: 8 },
-  summaryCard: {
+  header: { paddingTop: 52, paddingHorizontal: 16, paddingBottom: 14 },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
+  periodRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 12, padding: 3, marginBottom: 10 },
+  periodTab: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 9 },
+  periodTabActive: { backgroundColor: '#fff' },
+  periodText: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
+  periodTextActive: { color: COLORS.primary, fontWeight: 'bold' },
+  navRow: { flexDirection: 'row', alignItems: 'center' },
+  navBtn: { padding: 4 },
+  navLabel: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 'bold', color: '#fff' },
+  statsBlock: { margin: 12, marginBottom: 4 },
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  statBox: {
     flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 14,
-    borderTopWidth: 3, elevation: 2,
+    borderLeftWidth: 4, elevation: 2,
   },
-  summaryLabel: { fontSize: 11, color: COLORS.gray, marginBottom: 6 },
-  summaryVal: { fontSize: 16, fontWeight: 'bold' },
-  chartCard: { backgroundColor: '#fff', margin: 12, borderRadius: 14, padding: 16, elevation: 2, marginTop: 4 },
+  statBoxLabel: { fontSize: 11, color: COLORS.gray, marginBottom: 6 },
+  statBoxVal: { fontSize: 15, fontWeight: 'bold' },
+  chartCard: { backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 8, borderRadius: 14, padding: 16, elevation: 2 },
   chartTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.dark, marginBottom: 14 },
   emptyChart: { alignItems: 'center', paddingVertical: 24 },
   chartArea: { flexDirection: 'row', alignItems: 'flex-end', paddingBottom: 4, minHeight: 180 },
   barWrapper: { alignItems: 'center', marginHorizontal: 3, minWidth: 28 },
   barTrack: { width: 22, height: 140, justifyContent: 'flex-end' },
-  bar: { width: 22, borderRadius: 6, minHeight: 0 },
+  bar: { width: 22, borderRadius: 6 },
   barTopVal: { fontSize: 8, color: COLORS.gray, marginBottom: 2, textAlign: 'center', width: 32 },
   barLabel: { fontSize: 9, color: COLORS.gray, marginTop: 4, textAlign: 'center' },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 4 },
-  sectionTitle: { fontSize: 13, fontWeight: 'bold', color: COLORS.dark },
-  shipperCard: { backgroundColor: '#fff', margin: 12, borderRadius: 14, padding: 14, elevation: 2, marginTop: 0 },
-  shipperTableHead: { flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#EEE', marginBottom: 4 },
-  shipperRow: { flexDirection: 'row', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F5F5F5', alignItems: 'center' },
-  shipperCol: { flex: 1, fontSize: 12, color: COLORS.gray, textAlign: 'center' },
-  shopCard: { backgroundColor: '#fff', margin: 12, borderRadius: 14, padding: 14, elevation: 2, marginTop: 0 },
-  shopTableHead: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#EEE', marginBottom: 4 },
-  shopRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F5F5F5', gap: 4 },
-  shopCol: { flex: 1, fontSize: 12, color: COLORS.gray, textAlign: 'center' },
-  shopRank: { width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 4 },
-  shopTotal: { flexDirection: 'row', alignItems: 'center', paddingTop: 10, marginTop: 6, borderTopWidth: 1, borderTopColor: '#EEE' },
-  shopTotalLabel: { fontSize: 12, color: COLORS.gray },
-  shopTotalVal: { fontSize: 14, fontWeight: 'bold' },
-  topCard: { backgroundColor: '#fff', margin: 12, borderRadius: 14, padding: 14, elevation: 2, marginTop: 0 },
+  profitCard: { backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 8, borderRadius: 14, padding: 16, elevation: 2 },
+  profitHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  profitTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.dark },
+  profitRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7, borderTopWidth: 1, borderTopColor: '#F5F5F5' },
+  profitLabel: { fontSize: 13, color: COLORS.gray },
+  profitVal: { fontSize: 14, fontWeight: '600' },
+  profitTotalRow: { backgroundColor: '#F8FFF8', borderRadius: 10, paddingHorizontal: 10, marginTop: 4 },
+  profitTotalLabel: { fontSize: 14, fontWeight: 'bold', color: COLORS.dark },
+  profitTotalVal: { fontSize: 16, fontWeight: 'bold', color: '#4CAF50' },
+  tableCard: { backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 8, borderRadius: 14, padding: 14, elevation: 2 },
+  tableHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  tableTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.dark },
+  tableHead: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#EEE', marginBottom: 2 },
+  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F5F5F5' },
+  tableFoot: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderTopWidth: 1.5, borderTopColor: '#DDD', marginTop: 2 },
+  tc: { flex: 1, fontSize: 12, color: COLORS.gray, textAlign: 'center' },
+  rankDot: { width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 4 },
+  topCard: { backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 8, borderRadius: 14, padding: 14, elevation: 2 },
   topHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   topTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.dark },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 7, borderTopWidth: 1, borderTopColor: '#f5f5f5' },
