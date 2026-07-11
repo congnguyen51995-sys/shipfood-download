@@ -452,10 +452,22 @@ export const AppProvider = ({ children }) => {
     // Push notification: báo admin + shop (nếu là đơn shop)
     const itemSummary = orderData.items.slice(0, 2).map(i => i.name).join(', ') + (orderData.items.length > 2 ? '...' : '');
     const amountStr = formatCurrencySimple((total || 0) + (shippingFee || 0));
+    // shopId trong đơn hàng = users UID của shop (currentUser.id) → lấy token trực tiếp
+    const getShopPushToken = async (shopId) => {
+      try {
+        const direct = await getPushToken(shopId);
+        if (direct) return direct;
+        // fallback: shopId là linkedShops doc ID (đơn cũ)
+        const lsSnap = await getDoc(doc(db, 'linkedShops', shopId));
+        if (!lsSnap.exists()) return null;
+        const shopUserId = lsSnap.data().userId;
+        return shopUserId ? getPushToken(shopUserId) : null;
+      } catch { return null; }
+    };
     const [adminTokens, shipperTokens, shopToken] = await Promise.all([
       getTokensByRole('admin'),
       getTokensByRole('shipper'),
-      orderData.shopId ? getPushToken(orderData.shopId) : Promise.resolve(null),
+      orderData.shopId ? getShopPushToken(orderData.shopId) : Promise.resolve(null),
     ]);
     if (orderData.shopId) {
       await sendPush(adminTokens, '📦 Đơn mới (qua quán)', `${userName} · ${itemSummary} · ${amountStr}`);
