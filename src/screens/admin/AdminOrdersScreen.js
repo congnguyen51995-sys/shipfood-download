@@ -132,7 +132,7 @@ export default function AdminOrdersScreen() {
             <View style={styles.itemsBox}>
               {item.items.map((f, i) => (
                 <View key={i} style={styles.foodRow}>
-                  <Text style={styles.foodQty}>{f.quantity}x</Text>
+                  <Text style={styles.foodQty}>{f.quantity || f.qty || 1}x</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.foodName}>{f.name}</Text>
                     {f.selectedToppings?.length > 0 && (
@@ -141,7 +141,7 @@ export default function AdminOrdersScreen() {
                       </Text>
                     )}
                   </View>
-                  <Text style={styles.foodPrice}>{formatCurrency((f.price + (f.selectedToppings || []).reduce((s, t) => s + t.price, 0)) * f.quantity)}</Text>
+                  <Text style={styles.foodPrice}>{formatCurrency((f.price + (f.selectedToppings || f.toppings || []).reduce((s, t) => s + t.price, 0)) * (f.quantity || f.qty || 1))}</Text>
                 </View>
               ))}
             </View>
@@ -177,7 +177,7 @@ export default function AdminOrdersScreen() {
                   </Text>
                 ) : null}
               </View>
-              <Text style={styles.totalText}>{formatCurrency((item.total || 0) + (item.shippingFee ?? 15000))}</Text>
+              <Text style={styles.totalText}>{formatCurrency((item.total || item.totalAmount || 0) + (item.shippingFee || item.shipFee || 0))}</Text>
             </View>
 
             {item.status !== 'Đã giao' && item.status !== 'Đã hủy' && (

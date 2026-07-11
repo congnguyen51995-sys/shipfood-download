@@ -136,7 +136,7 @@ const PLATFORM_FEE = 2000;
 const SHIPPER_RATIO = 0.8;
 
 export default function RevenueScreen() {
-  const { allOrders } = useApp();
+  const { allOrders, linkedShops } = useApp();
   const { currentUser, isAdmin } = useAuth();
   const [period, setPeriod] = useState('Tháng');
   const [base, setBase] = useState(new Date());
@@ -188,7 +188,8 @@ export default function RevenueScreen() {
       const shopIds = [...new Set(allItems.map(i => i.shopId || '__platform__'))];
       if (shopIds.length === 0) shopIds.push(o.shopId || '__platform__');
       shopIds.forEach(key => {
-        const name = key === '__platform__' ? 'ShipFood' : (allItems.find(i => i.shopId === key)?.shopName || key);
+        const lsName = key !== '__platform__' ? linkedShops.find(s => s.id === key)?.shopName : null;
+        const name = key === '__platform__' ? 'ShipFood' : (lsName || allItems.find(i => i.shopId === key)?.shopName || key);
         if (!map[key]) map[key] = { id: key, name, orders: 0, foodRevenue: 0, platformRevenue: 0, shipRevenue: 0 };
         const itemFood = calcItemsByShop(allItems, key);
         if (itemFood > 0 || allItems.length === 0) {
@@ -199,11 +200,11 @@ export default function RevenueScreen() {
       });
       // ship tính vào shop chính của đơn
       const shipKey = o.shopId || '__platform__';
-      if (!map[shipKey]) map[shipKey] = { id: shipKey, name: shipKey === '__platform__' ? 'ShipFood' : (o.shopName || shipKey), orders: 0, foodRevenue: 0, platformRevenue: 0, shipRevenue: 0 };
+      if (!map[shipKey]) { const lsN = shipKey !== '__platform__' ? linkedShops.find(s => s.id === shipKey)?.shopName : null; map[shipKey] = { id: shipKey, name: shipKey === '__platform__' ? 'ShipFood' : (lsN || o.shopName || shipKey), orders: 0, foodRevenue: 0, platformRevenue: 0, shipRevenue: 0 }; }
       map[shipKey].shipRevenue += (o.shippingFee || 0);
     });
     return Object.values(map).sort((a, b) => b.foodRevenue - a.foodRevenue);
-  }, [periodOrders, isAdmin]);
+  }, [periodOrders, isAdmin, linkedShops]);
 
   // Admin: thống kê từng shipper
   const shipperStats = useMemo(() => {
@@ -222,8 +223,9 @@ export default function RevenueScreen() {
     const count = {};
     periodOrders.forEach(o => o.items?.forEach(i => {
       if (!count[i.name]) count[i.name] = { name: i.name, qty: 0, revenue: 0 };
-      count[i.name].qty += i.quantity;
-      count[i.name].revenue += i.price * i.quantity;
+      const qty = i.quantity || i.qty || 1;
+      count[i.name].qty += qty;
+      count[i.name].revenue += (i.price || 0) * qty;
     }));
     return Object.values(count).sort((a, b) => b.qty - a.qty).slice(0, 5);
   }, [periodOrders]);
