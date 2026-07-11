@@ -188,7 +188,8 @@ export default function RevenueScreen() {
       const shopIds = [...new Set(allItems.map(i => i.shopId || '__platform__'))];
       if (shopIds.length === 0) shopIds.push(o.shopId || '__platform__');
       shopIds.forEach(key => {
-        const lsName = key !== '__platform__' ? (linkedShops.find(s => s.id === key)?.name || linkedShops.find(s => s.id === key)?.shopName) : null;
+        const ls = key !== '__platform__' ? (linkedShops.find(s => s.userId === key) || linkedShops.find(s => s.id === key)) : null;
+        const lsName = ls?.name || ls?.shopName || null;
         const name = key === '__platform__' ? 'ShipFood' : (lsName || allItems.find(i => i.shopId === key)?.shopName || key);
         if (!map[key]) map[key] = { id: key, name, orders: 0, foodRevenue: 0, platformRevenue: 0, shipRevenue: 0 };
         const itemFood = calcItemsByShop(allItems, key);
@@ -200,7 +201,7 @@ export default function RevenueScreen() {
       });
       // ship tính vào shop chính của đơn
       const shipKey = o.shopId || '__platform__';
-      if (!map[shipKey]) { const lsN = shipKey !== '__platform__' ? (linkedShops.find(s => s.id === shipKey)?.name || linkedShops.find(s => s.id === shipKey)?.shopName) : null; map[shipKey] = { id: shipKey, name: shipKey === '__platform__' ? 'ShipFood' : (lsN || o.shopName || shipKey), orders: 0, foodRevenue: 0, platformRevenue: 0, shipRevenue: 0 }; }
+      if (!map[shipKey]) { const lsShip = shipKey !== '__platform__' ? (linkedShops.find(s => s.userId === shipKey) || linkedShops.find(s => s.id === shipKey)) : null; const lsNShip = lsShip?.name || lsShip?.shopName || null; map[shipKey] = { id: shipKey, name: shipKey === '__platform__' ? 'ShipFood' : (lsNShip || o.shopName || shipKey), orders: 0, foodRevenue: 0, platformRevenue: 0, shipRevenue: 0 }; }
       map[shipKey].shipRevenue += (o.shippingFee || 0);
     });
     return Object.values(map).sort((a, b) => b.foodRevenue - a.foodRevenue);
