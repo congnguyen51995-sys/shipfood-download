@@ -2264,11 +2264,14 @@ window.loadShopOrders=function(){
   document.getElementById('shopDateFilter').innerHTML=DATE_FILTERS.map(d=>
     `<div class="ftab ${d===shopDateFilter?'on':''}" onclick="setShopDateFilter('${d}')">${d}</div>`
   ).join('');
-  renderOrdersFilter('shopOrdersFilter',shopOrderFilter,'setShopOrdFilter');
+  const STATUS_FILTERS=['Tất cả','Chờ shop','Chờ xác nhận','Đã xác nhận','Đang giao','Đã giao','Đã hủy'];
+  document.getElementById('shopOrdersFilter').innerHTML=STATUS_FILTERS.map(s=>
+    `<div class="ftab ${s===shopOrderFilter?'on':''}" onclick="setShopOrdFilter('${s}')">${s}</div>`
+  ).join('');
   const now=new Date();
   const yesterday=new Date(now);yesterday.setDate(yesterday.getDate()-1);
   const sevenAgo=new Date(now);sevenAgo.setDate(sevenAgo.getDate()-7);
-  let orders=allOrders.filter(o=>o.shopId===user.id||true);
+  let orders=allOrders.filter(o=>(o.items||[]).some(i=>i.shopId===user.id));
   orders=orders.filter(o=>{
     const d=new Date(o.createdAt);
     if(shopDateFilter==='Hôm nay')return isSameDay(d,now);
@@ -2276,6 +2279,7 @@ window.loadShopOrders=function(){
     if(shopDateFilter==='7 ngày')return d>=sevenAgo;
     return true;
   });
+  if(shopOrderFilter!=='Tất cả')orders=orders.filter(o=>o.status===shopOrderFilter);
   // Today stats in header
   const todayAll=allOrders.filter(o=>isSameDay(new Date(o.createdAt),now));
   const todayDone=todayAll.filter(o=>o.status==='Đã giao');
