@@ -115,7 +115,7 @@ function getChartBars(period, orders, base, shopId) {
       const dayEnd = new Date(s.getFullYear(), s.getMonth(), i, 23, 59, 59);
       const total = filtered
         .filter(o => { const t = toDate(o.createdAt); return t >= dayStart && t <= dayEnd; })
-        .reduce((sum, o) => sum + (o.total || 0) + (o.shippingFee || 0), 0);
+        .reduce((sum, o) => sum + calcFood(o) + (o.shippingFee || o.shipFee || 0), 0);
       bars.push({ label: `${i}`, total });
     }
   } else {
@@ -125,7 +125,7 @@ function getChartBars(period, orders, base, shopId) {
       const mEnd = new Date(s.getFullYear(), m + 1, 0, 23, 59, 59);
       const total = filtered
         .filter(o => { const t = toDate(o.createdAt); return t >= mStart && t <= mEnd; })
-        .reduce((sum, o) => sum + (o.total || 0) + (o.shippingFee || 0), 0);
+        .reduce((sum, o) => sum + calcFood(o) + (o.shippingFee || o.shipFee || 0), 0);
       bars.push({ label: months[m], total });
     }
   }
