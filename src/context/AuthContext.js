@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import {
   collection, addDoc, getDocs, query, where, doc, getDoc, setDoc, deleteDoc, updateDoc,
 } from 'firebase/firestore';
@@ -62,8 +63,9 @@ export const AuthProvider = ({ children }) => {
     if (userData.password !== password) throw new Error('Số điện thoại hoặc mật khẩu không đúng');
 
     const lastLoginAt = new Date().toISOString();
-    await updateDoc(doc(db, 'users', userDoc.id), { lastLoginAt });
-    const user = { id: userDoc.id, ...userData, lastLoginAt };
+    const lastLoginPlatform = Platform.OS; // 'ios' | 'android' | 'web'
+    await updateDoc(doc(db, 'users', userDoc.id), { lastLoginAt, lastLoginPlatform });
+    const user = { id: userDoc.id, ...userData, lastLoginAt, lastLoginPlatform };
     setCurrentUser(user);
     await AsyncStorage.setItem('current_user', JSON.stringify(user));
     return user;

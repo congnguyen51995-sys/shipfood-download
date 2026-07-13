@@ -115,6 +115,13 @@ export default function AdminUsersScreen() {
   const shipperCount = users.filter(u => u.role === 'shipper').length;
   const shopCount = users.filter(u => u.role === 'shop').length;
 
+  // Platform stats (chỉ khách hàng đã đăng nhập ít nhất 1 lần)
+  const customers = users.filter(u => u.role === 'customer');
+  const iosCount = customers.filter(u => u.lastLoginPlatform === 'ios').length;
+  const androidCount = customers.filter(u => u.lastLoginPlatform === 'android').length;
+  const webCount = customers.filter(u => u.lastLoginPlatform === 'web').length;
+  const unknownCount = customers.filter(u => !u.lastLoginPlatform).length;
+
   // Order stats
   const statusCounts = {};
   allOrders.forEach(o => { statusCounts[o.status] = (statusCounts[o.status] || 0) + 1; });
@@ -297,6 +304,30 @@ export default function AdminUsersScreen() {
               </View>
             </View>
 
+            {/* Nền tảng đăng nhập */}
+            <View style={styles.reportCard}>
+              <View style={styles.reportHeader}>
+                <Ionicons name="phone-portrait-outline" size={17} color="#00BCD4" />
+                <Text style={styles.reportTitle}>Nền tảng đăng nhập (khách)</Text>
+              </View>
+              <View style={styles.platformGrid}>
+                {[
+                  { label: 'iOS', count: iosCount, icon: 'logo-apple', color: '#333' },
+                  { label: 'Android', count: androidCount, icon: 'logo-android', color: '#4CAF50' },
+                  { label: 'Web', count: webCount, icon: 'globe-outline', color: '#2196F3' },
+                  { label: 'Chưa rõ', count: unknownCount, icon: 'help-circle-outline', color: '#9E9E9E' },
+                ].filter(p => p.count > 0 || p.label !== 'Chưa rõ').map(p => (
+                  <View key={p.label} style={styles.platformItem}>
+                    <View style={[styles.platformIcon, { backgroundColor: p.color + '20' }]}>
+                      <Ionicons name={p.icon} size={20} color={p.color} />
+                    </View>
+                    <Text style={[styles.platformCount, { color: p.color }]}>{p.count}</Text>
+                    <Text style={styles.platformLabel}>{p.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
             {/* Mã đăng ký */}
             <View style={styles.reportCard}>
               <View style={styles.reportHeader}>
@@ -379,7 +410,15 @@ export default function AdminUsersScreen() {
                 <Text style={styles.userDate}>Đăng ký: {formatDate(item.createdAt)}</Text>
               ) : null}
               {item.lastLoginAt ? (
-                <Text style={styles.userDate}>🟢 Online: {formatDate(item.lastLoginAt)}</Text>
+                <View style={styles.loginRow}>
+                  {item.lastLoginPlatform === 'ios' && <Ionicons name="logo-apple" size={12} color="#333" />}
+                  {item.lastLoginPlatform === 'android' && <Ionicons name="logo-android" size={12} color="#4CAF50" />}
+                  {item.lastLoginPlatform === 'web' && <Ionicons name="globe-outline" size={12} color="#2196F3" />}
+                  <Text style={styles.userDate}>
+                    {item.lastLoginPlatform ? item.lastLoginPlatform.toUpperCase() + ' · ' : ''}
+                    {formatDate(item.lastLoginAt)}
+                  </Text>
+                </View>
               ) : null}
             </View>
             <View style={{ alignItems: 'flex-end', gap: 8 }}>
@@ -467,6 +506,12 @@ const styles = StyleSheet.create({
   codeText: { fontSize: 15, fontWeight: 'bold', color: COLORS.dark, letterSpacing: 1 },
   codeUsedBy: { fontSize: 12, color: '#4CAF50', marginTop: 2 },
   codeUnused: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  platformGrid: { flexDirection: 'row', justifyContent: 'space-around', paddingTop: 4 },
+  platformItem: { alignItems: 'center', gap: 4 },
+  platformIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  platformCount: { fontSize: 20, fontWeight: 'bold' },
+  platformLabel: { fontSize: 11, color: COLORS.gray },
+  loginRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '88%' },
   modalTitle: { fontSize: 17, fontWeight: 'bold', color: COLORS.dark, marginBottom: 16, textAlign: 'center' },
