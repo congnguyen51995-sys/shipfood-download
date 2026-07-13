@@ -88,7 +88,7 @@ const isShopOpenNow = (shop) => {
 };
 
 export default function CustomerShopsScreen({ navigation, route }) {
-  const { linkedShops, menuItems, addToCart, getCartCount, toggleFavorite, subscribeFavorites } = useApp();
+  const { linkedShops, menuItems, addToCart, getCartCount, toggleFavorite, subscribeFavorites, subscribeNotifications } = useApp();
   const { currentUser } = useAuth();
   const [selectedShop, setSelectedShop] = useState(null);
   const [search, setSearch] = useState('');
@@ -99,6 +99,12 @@ export default function CustomerShopsScreen({ navigation, route }) {
   React.useEffect(() => {
     if (!currentUser) return;
     const unsub = subscribeFavorites(currentUser.id, setFavorites);
+    return () => unsub();
+  }, [currentUser?.id]);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+  React.useEffect(() => {
+    if (!currentUser) return;
+    const unsub = subscribeNotifications(currentUser.id, n => setUnreadCount(n.filter(x => !x.read).length));
     return () => unsub();
   }, [currentUser?.id]);
 
@@ -257,6 +263,14 @@ export default function CustomerShopsScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.navigate('CustomerSearch')} style={styles.iconBtn}>
           <Ionicons name="search" size={22} color="#fff" />
         </TouchableOpacity>
+        {!isGuest && (
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('CustomerNotifications')}>
+            <Ionicons name="notifications-outline" size={22} color="#fff" />
+            {unreadCount > 0 && (
+              <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text></View>
+            )}
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           onPress={() => isGuest ? navigation.navigate('Login') : navigation.navigate('CustomerCart')}
           style={styles.cartBtn}

@@ -136,10 +136,16 @@ const isInSaleWindow = (item) => {
 };
 
 export default function CustomerHomeScreen({ navigation, route }) {
-  const { menuItems, addToCart, getCartCount, restaurantInfo } = useApp();
+  const { menuItems, addToCart, getCartCount, restaurantInfo, subscribeNotifications } = useApp();
   const { currentUser } = useAuth();
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState(route?.params?.filterCat || 'Tất cả');
+  const [unreadCount, setUnreadCount] = useState(0);
+  React.useEffect(() => {
+    if (!currentUser) return;
+    const unsub = subscribeNotifications(currentUser.id, n => setUnreadCount(n.filter(x => !x.read).length));
+    return () => unsub();
+  }, [currentUser?.id]);
   const [modal, setModal] = useState({ visible: false, item: null });
 
   // Nhận filterCat từ trang chủ
@@ -197,6 +203,14 @@ export default function CustomerHomeScreen({ navigation, route }) {
           <TouchableOpacity onPress={() => navigation.navigate('CustomerSearch')} style={styles.iconBtn}>
             <Ionicons name="search" size={24} color="#fff" />
           </TouchableOpacity>
+          {!isGuest && (
+            <TouchableOpacity style={styles.cartBtn} onPress={() => navigation.navigate('CustomerNotifications')}>
+              <Ionicons name="notifications-outline" size={24} color="#fff" />
+              {unreadCount > 0 && (
+                <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text></View>
+              )}
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => isGuest ? navigation.navigate('Login') : navigation.navigate('CustomerCart')}
             style={styles.cartBtn}

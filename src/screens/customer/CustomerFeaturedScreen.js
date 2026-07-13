@@ -12,7 +12,16 @@ import { scheduleDailyFoodNotifications } from '../../utils/dailyNotifications';
 import AdBannerCarousel from '../../components/AdBannerCarousel';
 
 export default function CustomerFeaturedScreen({ navigation }) {
-  const { menuItems, menuLoaded, allOrders, addToCart, clearCart, getCartCount, restaurantInfo, adBanners, refreshMenuItems } = useApp();
+  const { menuItems, menuLoaded, allOrders, addToCart, clearCart, getCartCount, restaurantInfo, adBanners, refreshMenuItems, subscribeNotifications } = useApp();
+  const { currentUser } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsub = subscribeNotifications(currentUser.id, (notifs) => {
+      setUnreadCount(notifs.filter(n => !n.read).length);
+    });
+    return () => unsub();
+  }, [currentUser?.id]);
   const [refreshing, setRefreshing] = useState(false);
   const shimmer = React.useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -24,7 +33,6 @@ export default function CustomerFeaturedScreen({ navigation }) {
     }
   }, [menuLoaded]);
   const shimmerOpacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
-  const { currentUser } = useAuth();
 
   useEffect(() => {
     scheduleDailyFoodNotifications();
@@ -258,15 +266,25 @@ export default function CustomerFeaturedScreen({ navigation }) {
             🛵 Đã giao {deliveredCount > 0 ? `${deliveredCount}+` : '0'} đơn · ⚡ Giao trong 30 phút · ⭐ Uy tín
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={() => isGuest ? navigation.navigate('Login') : navigation.navigate('CustomerCart')}
-          style={styles.cartBtn}
-        >
-          <Ionicons name={isGuest ? 'log-in-outline' : 'cart-outline'} size={26} color="#fff" />
-          {!isGuest && cartCount > 0 && (
-            <View style={styles.badge}><Text style={styles.badgeText}>{cartCount}</Text></View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {!isGuest && (
+            <TouchableOpacity style={styles.cartBtn} onPress={() => navigation.navigate('CustomerNotifications')}>
+              <Ionicons name="notifications-outline" size={24} color="#fff" />
+              {unreadCount > 0 && (
+                <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text></View>
+              )}
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => isGuest ? navigation.navigate('Login') : navigation.navigate('CustomerCart')}
+            style={styles.cartBtn}
+          >
+            <Ionicons name={isGuest ? 'log-in-outline' : 'cart-outline'} size={26} color="#fff" />
+            {!isGuest && cartCount > 0 && (
+              <View style={styles.badge}><Text style={styles.badgeText}>{cartCount}</Text></View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search bar */}
