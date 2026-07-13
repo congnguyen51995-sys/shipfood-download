@@ -2376,8 +2376,9 @@ window.loadRevenue=async function(elId,shopId,period){
         const allItems=o.items||[];
         const shopIds=[...new Set(allItems.map(i=>i.shopId||'__platform__'))];
         if(shopIds.length===0)shopIds.push(o.shopId||'__platform__');
+        const getShopName=key=>{if(key==='__platform__')return'ShipFood';const ls=linkedShops.find(s=>s.userId===key)||linkedShops.find(s=>s.id===key);return ls?.name||ls?.shopName||allItems.find(i=>i.shopId===key)?.shopName||o.shopName||key;};
         shopIds.forEach(key=>{
-          const name=key==='__platform__'?'ShipFood':(allItems.find(i=>i.shopId===key)?.shopName||key);
+          const name=getShopName(key);
           if(!shopMap[key])shopMap[key]={name,orders:0,food:0,platform:0,ship:0};
           const itemFood=calcItemsByShop(allItems,key);
           if(itemFood>0||allItems.length===0){
@@ -2389,7 +2390,7 @@ window.loadRevenue=async function(elId,shopId,period){
         // ship thuộc về shop chính của đơn
         const shipKey=o.shopId||'__platform__';
         if(shopMap[shipKey])shopMap[shipKey].ship+=(o.shippingFee||o.shipFee||0);
-        else{if(!shopMap[shipKey])shopMap[shipKey]={name:shipKey==='__platform__'?'ShipFood':o.shopName||shipKey,orders:0,food:0,platform:0,ship:0};shopMap[shipKey].ship+=(o.shippingFee||o.shipFee||0);}
+        else{if(!shopMap[shipKey])shopMap[shipKey]={name:getShopName(shipKey),orders:0,food:0,platform:0,ship:0};shopMap[shipKey].ship+=(o.shippingFee||o.shipFee||0);}
       });
       const shops=Object.values(shopMap).sort((a,b)=>b.food-a.food);
       const fmtK=v=>v>=1000000?(v/1000000).toFixed(1)+'M':Math.round(v/1000)+'k';
