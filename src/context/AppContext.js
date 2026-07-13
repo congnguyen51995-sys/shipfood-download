@@ -487,6 +487,12 @@ export const AppProvider = ({ children }) => {
     if (status === 'Đã giao' && order?.userId) {
       const customerToken = await getPushToken(order.userId);
       if (customerToken) await sendPush([customerToken], '✅ Đơn hàng đã giao!', 'Đơn hàng của bạn đã được giao thành công. Cảm ơn bạn!');
+      await saveNotification(order.userId, '✅ Đơn hàng đã giao!', 'Đơn hàng của bạn đã được giao thành công. Cảm ơn bạn!');
+    }
+    if (status === 'Đang giao' && order?.userId) {
+      const customerToken = await getPushToken(order.userId);
+      if (customerToken) await sendPush([customerToken], '🛵 Shipper đang giao hàng!', 'Đơn hàng đang trên đường đến bạn');
+      await saveNotification(order.userId, '🛵 Shipper đang giao hàng!', 'Đơn hàng đang trên đường đến bạn');
     }
   };
 
@@ -495,6 +501,7 @@ export const AppProvider = ({ children }) => {
     if (order?.userId) {
       const customerToken = await getPushToken(order.userId);
       if (customerToken) await sendPush([customerToken], '❌ Đơn bị hủy', `Lý do: ${reason || 'Quán không thể phục vụ'}`);
+      await saveNotification(order.userId, '❌ Đơn bị hủy', `Lý do: ${reason || 'Quán không thể phục vụ'}`);
     }
   };
 
@@ -506,6 +513,7 @@ export const AppProvider = ({ children }) => {
     ]);
     await sendPush(shipperTokens, '🛵 Có đơn mới cần giao!', 'Quán đã xác nhận — vào app nhận đơn ngay');
     if (customerToken) await sendPush([customerToken], '✅ Quán đã xác nhận!', 'Đơn của bạn đã được xác nhận, đang chờ shipper');
+    if (order?.userId) await saveNotification(order.userId, '✅ Quán đã xác nhận!', 'Đơn của bạn đã được xác nhận, đang chờ shipper');
   };
 
   const confirmTransferPayment = async (orderId) => {
@@ -525,6 +533,7 @@ export const AppProvider = ({ children }) => {
     if (order?.userId) {
       const customerToken = await getPushToken(order.userId);
       if (customerToken) await sendPush([customerToken], '🛵 Shipper đang đến lấy hàng!', `${shipperName} đang trên đường lấy đơn của bạn`);
+      await saveNotification(order.userId, '🛵 Shipper đang đến lấy hàng!', `${shipperName} đang trên đường lấy đơn của bạn`);
     }
   };
 

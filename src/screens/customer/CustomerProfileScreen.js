@@ -176,7 +176,12 @@ export default function CustomerProfileScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Thông báo + Chat */}
+        {/* Quán yêu thích + Thông báo + Chat */}
+        <TouchableOpacity style={styles.chatBtn} onPress={() => navigation.navigate('CustomerFavorites')}>
+          <Ionicons name="heart-outline" size={20} color="#F44336" />
+          <Text style={styles.chatBtnText}>Quán yêu thích</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.chatBtn} onPress={() => navigation.navigate('CustomerNotifications')}>
           <Ionicons name="notifications-outline" size={20} color="#9C27B0" />
           <Text style={styles.chatBtnText}>Lịch sử thông báo</Text>
