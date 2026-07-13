@@ -634,7 +634,50 @@ export const AppProvider = ({ children }) => {
   const notifyShipperNearby = async (order) => {
     if (!order?.userId) return;
     const token = await getPushToken(order.userId);
-    if (token) await sendPush([token], '🛵 Shipper đang đến gần!', `${order.shipperName || 'Shipper'} sắp đến nơi, vui lòng ra nhận hàng`);
+    if (token) {
+      await sendPush([token], '🛵 Shipper đang đến gần!', `${order.shipperName || 'Shipper'} sắp đến nơi, vui lòng ra nhận hàng`);
+      await saveNotification(order.userId, '🛵 Shipper đang đến gần!', `${order.shipperName || 'Shipper'} sắp đến nơi, vui lòng ra nhận hàng`);
+    }
+  };
+
+  // ── FAVORITES ─────────────────────────────────────────────
+  const toggleFavorite = async (userId, shopId) => {
+    try {
+      const ref = doc(db, 'favorites', userId);
+      const snap = await getDoc(ref);
+      const current = snap.exists() ? (snap.data().shopIds || []) : [];
+      const next = current.includes(shopId)
+        ? current.filter(id => id !== shopId)
+        : [...current, shopId];
+      await setDoc(ref, { shopIds: next });
+    } catch {}
+  };
+
+  const subscribeFavorites = (userId, cb) => {
+    return onSnapshot(doc(db, 'favorites', userId), snap => {
+      cb(snap.exists() ? (snap.data().shopIds || []) : []);
+    });
+  };
+
+  // ── NOTIFICATION HISTORY ───────────────────────────────────
+  const saveNotification = async (userId, title, body) => {
+    try {
+      await addDoc(collection(db, 'notifications', userId, 'items'), {
+        title, body, createdAt: serverTimestamp(), read: false,
+      });
+    } catch {}
+  };
+
+  const subscribeNotifications = (userId, cb) => {
+    const q = query(collection(db, 'notifications', userId, 'items'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+  };
+
+  const markAllNotificationsRead = async (userId) => {
+    try {
+      const snap = await getDocs(query(collection(db, 'notifications', userId, 'items'), where('read', '==', false)));
+      await Promise.all(snap.docs.map(d => updateDoc(d.ref, { read: true })));
+    } catch {}
   };
 
   return (
@@ -654,6 +697,8 @@ export const AppProvider = ({ children }) => {
       getLoyaltyPoints, addLoyaltyPoints, deductLoyaltyPoints,
       sendChatMessage, subscribeToChatMessages, markChatRead, subscribeToChatList,
       notifyShipperNearby,
+      toggleFavorite, subscribeFavorites,
+      saveNotification, subscribeNotifications, markAllNotificationsRead,
     }}>
       {children}
     </AppContext.Provider>

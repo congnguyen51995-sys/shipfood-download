@@ -87,13 +87,28 @@ const isShopOpenNow = (shop) => {
   return open <= close ? (nowMins >= open && nowMins < close) : (nowMins >= open || nowMins < close);
 };
 
-export default function CustomerShopsScreen({ navigation }) {
-  const { linkedShops, menuItems, addToCart, getCartCount } = useApp();
+export default function CustomerShopsScreen({ navigation, route }) {
+  const { linkedShops, menuItems, addToCart, getCartCount, toggleFavorite, subscribeFavorites } = useApp();
   const { currentUser } = useAuth();
   const [selectedShop, setSelectedShop] = useState(null);
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState({ visible: false, item: null });
   const [selectedCat, setSelectedCat] = useState('Tất cả');
+  const [favorites, setFavorites] = React.useState([]);
+
+  React.useEffect(() => {
+    if (!currentUser) return;
+    const unsub = subscribeFavorites(currentUser.id, setFavorites);
+    return () => unsub();
+  }, [currentUser?.id]);
+
+  // Auto-select shop nếu điều hướng từ Search
+  React.useEffect(() => {
+    if (route?.params?.autoSelectShopId) {
+      const shop = linkedShops.find(s => s.id === route.params.autoSelectShopId);
+      if (shop) setSelectedShop(shop);
+    }
+  }, [route?.params?.autoSelectShopId]);
 
   const isGuest = !currentUser;
   const cartCount = getCartCount(currentUser?.id || '');
@@ -232,10 +247,13 @@ export default function CustomerShopsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Quán liên kết</Text>
           <Text style={styles.headerSub}>{linkedShops.length} quán đang hoạt động</Text>
         </View>
+        <TouchableOpacity onPress={() => navigation.navigate('CustomerSearch')} style={styles.iconBtn}>
+          <Ionicons name="search" size={22} color="#fff" />
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={() => isGuest ? navigation.navigate('Login') : navigation.navigate('CustomerCart')}
           style={styles.cartBtn}
@@ -264,6 +282,15 @@ export default function CustomerShopsScreen({ navigation }) {
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={styles.shopName}>{shop.name}</Text>
+                  {!isGuest && (
+                    <TouchableOpacity onPress={() => toggleFavorite(currentUser.id, shop.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons
+                        name={favorites.includes(shop.id) ? 'heart' : 'heart-outline'}
+                        size={16}
+                        color={favorites.includes(shop.id) ? '#F44336' : COLORS.gray}
+                      />
+                    </TouchableOpacity>
+                  )}
                   {!isOpen && (
                     <View style={styles.closedBadge}>
                       <Text style={styles.closedBadgeText}>Đóng cửa</Text>
@@ -320,6 +347,7 @@ const styles = StyleSheet.create({
   backBtn: { padding: 4 },
   shopHeaderName: { fontSize: 17, fontWeight: 'bold', color: '#fff' },
   shopHeaderSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  iconBtn: { padding: 4, marginRight: 4 },
   cartBtn: { position: 'relative', padding: 4 },
   badge: {
     position: 'absolute', top: -4, right: -4,

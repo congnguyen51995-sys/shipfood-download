@@ -193,15 +193,20 @@ export default function CustomerHomeScreen({ navigation, route }) {
           <Text style={styles.headerHi}>Xin chào, {currentUser?.name || 'Khách'} 👋</Text>
           <Text style={styles.headerSub}>{restaurantInfo.name}</Text>
         </View>
-        <TouchableOpacity
-          onPress={() => isGuest ? navigation.navigate('Login') : navigation.navigate('CustomerCart')}
-          style={styles.cartBtn}
-        >
-          <Ionicons name={isGuest ? 'log-in-outline' : 'cart-outline'} size={28} color="#fff" />
-          {!isGuest && cartCount > 0 && (
-            <View style={styles.badge}><Text style={styles.badgeText}>{cartCount}</Text></View>
-          )}
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('CustomerSearch')} style={styles.iconBtn}>
+            <Ionicons name="search" size={24} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => isGuest ? navigation.navigate('Login') : navigation.navigate('CustomerCart')}
+            style={styles.cartBtn}
+          >
+            <Ionicons name={isGuest ? 'log-in-outline' : 'cart-outline'} size={28} color="#fff" />
+            {!isGuest && cartCount > 0 && (
+              <View style={styles.badge}><Text style={styles.badgeText}>{cartCount}</Text></View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.searchBox}>
@@ -310,6 +315,7 @@ const styles = StyleSheet.create({
   },
   headerHi: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
   headerSub: { fontSize: 12, color: COLORS.secondary, marginTop: 2 },
+  iconBtn: { padding: 4 },
   cartBtn: { position: 'relative', padding: 4 },
   badge: {
     position: 'absolute', top: -4, right: -4,

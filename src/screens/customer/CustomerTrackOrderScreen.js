@@ -76,10 +76,17 @@ export default function CustomerTrackOrderScreen({ route, navigation }) {
         ) : (
           <View style={[styles.currentCard, { borderColor: STEPS[curIdx]?.color || COLORS.primary }]}>
             <Ionicons name={STEPS[curIdx]?.icon || 'time-outline'} size={32} color={STEPS[curIdx]?.color || COLORS.primary} />
-            <Text style={[styles.currentStatus, { color: STEPS[curIdx]?.color || COLORS.primary }]}>
-              {STEPS[curIdx]?.label || order.status}
-            </Text>
-            {isDone && <Text style={styles.doneNote}>Cảm ơn bạn đã đặt hàng!</Text>}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.currentStatus, { color: STEPS[curIdx]?.color || COLORS.primary }]}>
+                {STEPS[curIdx]?.label || order.status}
+              </Text>
+              {!isDone && order.distanceKm && (
+                <Text style={styles.etaText}>
+                  ⏱ Dự kiến {Math.max(5, 15 + Math.round(order.distanceKm * 4))} phút
+                </Text>
+              )}
+              {isDone && <Text style={styles.doneNote}>Cảm ơn bạn đã đặt hàng!</Text>}
+            </View>
           </View>
         )}
 
@@ -202,6 +209,7 @@ const styles = StyleSheet.create({
   },
   currentStatus: { fontSize: 17, fontWeight: 'bold', flex: 1 },
   doneNote: { fontSize: 12, color: '#4CAF50', marginTop: 2 },
+  etaText: { fontSize: 12, color: COLORS.gray, marginTop: 4 },
   progressCard: { backgroundColor: '#fff', margin: 12, marginTop: 0, borderRadius: 16, padding: 16, elevation: 2 },
   sectionTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.dark, marginBottom: 14 },
   stepRow: { flexDirection: 'row', minHeight: 44 },

@@ -6,7 +6,7 @@ import { useApp } from '../../context/AppContext';
 import { COLORS } from '../../utils/format';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function CustomerProfileScreen() {
+export default function CustomerProfileScreen({ navigation }) {
   const { currentUser, logout, deleteUser, changePassword } = useAuth();
   const [passModal, setPassModal] = useState(false);
   const [oldPass, setOldPass] = useState('');
@@ -167,7 +167,7 @@ export default function CustomerProfileScreen() {
             <Ionicons name="gift-outline" size={28} color="#FF9800" />
             <View>
               <Text style={styles.loyaltyTitle}>Điểm tích lũy</Text>
-              <Text style={styles.loyaltySub}>100 điểm = giảm 5.000đ</Text>
+              <Text style={styles.loyaltySub}>10 điểm = giảm 1.000đ</Text>
             </View>
           </View>
           <View style={styles.loyaltyRight}>
@@ -176,7 +176,12 @@ export default function CustomerProfileScreen() {
           </View>
         </View>
 
-        {/* Chat button */}
+        {/* Thông báo + Chat */}
+        <TouchableOpacity style={styles.chatBtn} onPress={() => navigation.navigate('CustomerNotifications')}>
+          <Ionicons name="notifications-outline" size={20} color="#9C27B0" />
+          <Text style={styles.chatBtnText}>Lịch sử thông báo</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.chatBtn} onPress={() => navigation.navigate('CustomerChat')}>
           <Ionicons name="chatbubble-ellipses-outline" size={20} color={COLORS.primary} />
           <Text style={styles.chatBtnText}>Liên hệ hỗ trợ</Text>

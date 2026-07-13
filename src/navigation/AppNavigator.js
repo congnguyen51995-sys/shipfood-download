@@ -43,6 +43,8 @@ import CustomerShopsScreen from '../screens/customer/CustomerShopsScreen';
 import CustomerTrackOrderScreen from '../screens/customer/CustomerTrackOrderScreen';
 import RevenueScreen from '../screens/RevenueScreen';
 import CustomerChatScreen from '../screens/customer/CustomerChatScreen';
+import CustomerSearchScreen from '../screens/customer/CustomerSearchScreen';
+import CustomerNotificationsScreen from '../screens/customer/CustomerNotificationsScreen';
 import AdminChatScreen from '../screens/admin/AdminChatScreen';
 
 const Tab = createBottomTabNavigator();
@@ -174,6 +176,8 @@ function CustomerStack() {
       <Stack.Screen name="TrackOrder" component={CustomerTrackOrderScreen} />
       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
       <Stack.Screen name="CustomerChat" component={CustomerChatScreen} />
+      <Stack.Screen name="CustomerSearch" component={CustomerSearchScreen} />
+      <Stack.Screen name="CustomerNotifications" component={CustomerNotificationsScreen} />
     </Stack.Navigator>
   );
 }
