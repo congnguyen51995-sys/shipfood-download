@@ -52,9 +52,9 @@ export default function CustomerCartScreen({ navigation }) {
   const pickupSurcharge = getPickupSurcharge(shopDistanceKm);
   const shopUnavailable = !isShopAvailable(shopDistanceKm);
 
-  const maxPointsDiscount = loyaltyPoints >= 100 ? Math.floor(loyaltyPoints / 100) * 5000 : 0;
+  const maxPointsDiscount = loyaltyPoints > 0 ? loyaltyPoints * 1000 : 0;
   const pointsDiscount = usePoints ? maxPointsDiscount : 0;
-  const pointsToUse = usePoints ? Math.floor(loyaltyPoints / 100) * 100 : 0;
+  const pointsToUse = usePoints ? loyaltyPoints : 0;
   const totalAmount = cartTotal + (shippingFee || 0) + pickupSurcharge - discount - pointsDiscount;
 
   const getQrUrl = (amount, orderId) => {
