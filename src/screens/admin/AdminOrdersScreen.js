@@ -173,11 +173,11 @@ export default function AdminOrdersScreen() {
                 <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
                 {item.distanceKm !== null && item.distanceKm !== undefined ? (
                   <Text style={styles.distanceText}>
-                    📏 {item.distanceKm} km · Ship: {item.shippingFee === 0 ? 'Miễn phí' : formatCurrency(item.shippingFee ?? 15000)}
+                    📏 {item.distanceKm} km · Ship: {(item.shippingFee || item.shipFee || 0) === 0 ? 'Miễn phí' : formatCurrency(item.shippingFee || item.shipFee || 0)}
                   </Text>
                 ) : null}
               </View>
-              <Text style={styles.totalText}>{formatCurrency((item.total || item.totalAmount || 0) + (item.shippingFee || item.shipFee || 0))}</Text>
+              <Text style={styles.totalText}>{formatCurrency(item.total != null ? (item.total + (item.shippingFee || item.shipFee || 0)) : (item.totalAmount || 0))}</Text>
             </View>
 
             {item.status !== 'Đã giao' && item.status !== 'Đã hủy' && (
