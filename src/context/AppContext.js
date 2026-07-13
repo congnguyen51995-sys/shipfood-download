@@ -448,8 +448,8 @@ export const AppProvider = ({ children }) => {
 
     const docRef = await addDoc(collection(db, 'orders'), { ...orderData, pointsUsed: pointsUsed || 0 });
     clearCart(userId);
-    // Award loyalty points (1 point per 1000đ food)
-    await addLoyaltyPoints(userId, total);
+    // Award 1 loyalty point per order
+    await addLoyaltyPoints(userId);
     if (pointsUsed > 0) await deductLoyaltyPoints(userId, pointsUsed);
 
     // Push notification: báo admin + shop (nếu là đơn shop)
@@ -580,12 +580,10 @@ export const AppProvider = ({ children }) => {
     } catch { return { points: 0, totalEarned: 0 }; }
   };
 
-  const addLoyaltyPoints = async (userId, spentAmount) => {
-    const earned = Math.floor(spentAmount / 1000);
-    if (!earned) return;
+  const addLoyaltyPoints = async (userId) => {
     try {
       await setDoc(doc(db, 'loyaltyPoints', userId),
-        { points: increment(earned), totalEarned: increment(earned) },
+        { points: increment(1), totalEarned: increment(1) },
         { merge: true });
     } catch {}
   };
