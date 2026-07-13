@@ -251,6 +251,9 @@ export default function CustomerShopsScreen({ navigation, route }) {
           <Text style={styles.headerTitle}>Quán liên kết</Text>
           <Text style={styles.headerSub}>{linkedShops.length} quán đang hoạt động</Text>
         </View>
+        <TouchableOpacity onPress={() => navigation.navigate('CustomerFavorites')} style={styles.iconBtn}>
+          <Ionicons name="heart" size={22} color="#fff" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('CustomerSearch')} style={styles.iconBtn}>
           <Ionicons name="search" size={22} color="#fff" />
         </TouchableOpacity>
