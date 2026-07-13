@@ -60,7 +60,7 @@ const stepStyles = StyleSheet.create({
 });
 
 export default function ShipperOrdersScreen() {
-  const { allOrders, updateOrderStatus, claimOrder, updateOrderPayment } = useApp();
+  const { allOrders, updateOrderStatus, claimOrder, updateOrderPayment, notifyShipperNearby } = useApp();
   const { currentUser } = useAuth();
   const [tab, setTab] = useState('new'); // 'new' | 'mine' | 'done'
   const prevCount = useRef(0);
@@ -245,6 +245,19 @@ export default function ShipperOrdersScreen() {
               <Text style={styles.nextBtnText}>{action.label}</Text>
             </TouchableOpacity>
           )}
+          {/* Notify customer shipper is nearby */}
+          {isMine && item.status === 'Đang giao' && (
+            <TouchableOpacity
+              style={styles.nearbyBtn}
+              onPress={() => Alert.alert('Thông báo khách hàng?', 'Gửi tin nhắn báo bạn đang đến gần nơi giao hàng', [
+                { text: 'Hủy' },
+                { text: 'Gửi', onPress: () => notifyShipperNearby(item) },
+              ])}
+            >
+              <Ionicons name="notifications-outline" size={14} color="#9C27B0" />
+              <Text style={styles.nearbyBtnText}>Báo đang đến</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -363,13 +376,15 @@ const styles = StyleSheet.create({
   payDone: { backgroundColor: '#E8F5E9' },
   payPending: { backgroundColor: '#FFF3E0' },
   payText: { flex: 1, fontSize: 13, fontWeight: '600' },
-  actions: { flexDirection: 'row', gap: 8 },
+  actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   mapsBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#1a73e8', borderRadius: 10, padding: 10 },
   mapsBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
   claimBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: COLORS.primary, borderRadius: 10, padding: 10 },
   claimBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
   nextBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, padding: 10 },
   nextBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  nearbyBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, padding: 10, borderWidth: 1.5, borderColor: '#9C27B0' },
+  nearbyBtnText: { color: '#9C27B0', fontWeight: 'bold', fontSize: 12 },
   empty: { alignItems: 'center', paddingTop: 80 },
   emptyText: { color: COLORS.gray, fontSize: 15, marginTop: 12 },
 });

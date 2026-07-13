@@ -610,6 +610,12 @@ export default function AdminProfileScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity style={styles.chatAdminBtn} onPress={() => navigation.navigate('AdminChat')}>
+          <Ionicons name="chatbubbles-outline" size={20} color={COLORS.primary} />
+          <Text style={styles.chatAdminBtnText}>Hỗ trợ khách hàng</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.logoutBtn} onPress={() =>
           Alert.alert('Đăng xuất', 'Xác nhận đăng xuất?', [
             { text: 'Hủy' },
@@ -785,6 +791,8 @@ const styles = StyleSheet.create({
   versionVal: { fontSize: 13, color: COLORS.dark, fontWeight: '500', maxWidth: 200 },
   checkUpdateBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: COLORS.lightGray },
   checkUpdateText: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
+  chatAdminBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 10, borderRadius: 14, padding: 14, elevation: 2 },
+  chatAdminBtnText: { flex: 1, fontSize: 15, fontWeight: '600', color: COLORS.dark },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.danger, margin: 16, padding: 15, borderRadius: 14, gap: 8 },
   logoutText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 52, borderBottomWidth: 1, borderBottomColor: COLORS.lightGray },

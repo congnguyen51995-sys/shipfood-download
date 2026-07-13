@@ -42,6 +42,8 @@ import LocationPickerScreen from '../screens/LocationPickerScreen';
 import CustomerShopsScreen from '../screens/customer/CustomerShopsScreen';
 import CustomerTrackOrderScreen from '../screens/customer/CustomerTrackOrderScreen';
 import RevenueScreen from '../screens/RevenueScreen';
+import CustomerChatScreen from '../screens/customer/CustomerChatScreen';
+import AdminChatScreen from '../screens/admin/AdminChatScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -129,6 +131,7 @@ function AdminStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="AdminMain" component={AdminTabs} />
       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
+      <Stack.Screen name="AdminChat" component={AdminChatScreen} />
     </Stack.Navigator>
   );
 }
@@ -170,6 +173,7 @@ function CustomerStack() {
       <Stack.Screen name="CustomerCart" component={CustomerCartScreen} />
       <Stack.Screen name="TrackOrder" component={CustomerTrackOrderScreen} />
       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
+      <Stack.Screen name="CustomerChat" component={CustomerChatScreen} />
     </Stack.Navigator>
   );
 }

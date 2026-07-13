@@ -41,7 +41,7 @@ function StarRow({ value, onChange }) {
 }
 
 export default function CustomerOrdersScreen({ navigation }) {
-  const { getUserOrders, updateOrderStatus, rateOrder } = useApp();
+  const { getUserOrders, updateOrderStatus, rateOrder, addToCart, menuItems, clearCart } = useApp();
   const { currentUser } = useAuth();
   const [filter, setFilter] = useState('Tất cả');
   const [ratingModal, setRatingModal] = useState(null);
@@ -67,6 +67,36 @@ export default function CustomerOrdersScreen({ navigation }) {
   };
 
   const LABEL = ['', 'Tệ', 'Không ổn', 'Bình thường', 'Tốt', 'Tuyệt vời!'];
+
+  const handleReorder = (order) => {
+    Alert.alert(
+      'Đặt lại đơn này?',
+      'Các món trong đơn cũ sẽ được thêm vào giỏ hàng.',
+      [
+        { text: 'Hủy' },
+        {
+          text: 'Đặt lại',
+          onPress: () => {
+            clearCart(currentUser.id);
+            let added = 0;
+            order.items.forEach(f => {
+              const menuItem = menuItems.find(m => m.id === f.id || m.name === f.name);
+              if (menuItem && menuItem.available) {
+                addToCart(currentUser.id, menuItem, f.selectedToppings?.filter(t => menuItem.toppings?.some(mt => mt.id === t.id)) || []);
+                added++;
+              }
+            });
+            if (added === 0) {
+              Alert.alert('Không thể đặt lại', 'Các món trong đơn cũ hiện không còn phục vụ.');
+            } else {
+              if (added < order.items.length) Alert.alert('Lưu ý', `${order.items.length - added} món không còn trong menu đã được bỏ qua.`);
+              navigation.navigate('CustomerCart');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -144,6 +174,12 @@ export default function CustomerOrdersScreen({ navigation }) {
                   <Text style={styles.rateBtnText}>Đánh giá đơn hàng</Text>
                 </TouchableOpacity>
               )
+            )}
+            {(item.status === 'Đã giao' || item.status === 'Đã hủy') && (
+              <TouchableOpacity style={styles.reorderBtn} onPress={() => handleReorder(item)}>
+                <Ionicons name="refresh-outline" size={15} color={COLORS.primary} />
+                <Text style={styles.reorderBtnText}>Đặt lại</Text>
+              </TouchableOpacity>
             )}
           </View>
         )}
@@ -224,6 +260,8 @@ const styles = StyleSheet.create({
   rateBtnText: { color: '#E65100', fontSize: 13, fontWeight: '600' },
   ratedBox: { marginTop: 10, padding: 8, borderRadius: 10, backgroundColor: '#FFFDE7', gap: 4 },
   ratedComment: { fontSize: 12, color: COLORS.gray, fontStyle: 'italic' },
+  reorderBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, padding: 9, borderRadius: 10, backgroundColor: COLORS.primary + '12', borderWidth: 1, borderColor: COLORS.primary + '40' },
+  reorderBtnText: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
   empty: { alignItems: 'center', paddingTop: 80 },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.dark, marginTop: 12 },
   emptyDesc: { fontSize: 13, color: COLORS.gray, marginTop: 6, textAlign: 'center' },

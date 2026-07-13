@@ -77,12 +77,23 @@ const ToppingModal = ({ visible, item, onClose, onConfirm }) => {
   );
 };
 
+const isShopOpenNow = (shop) => {
+  if (!shop?.openTime || !shop?.closeTime) return true;
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const parse = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
+  const open = parse(shop.openTime);
+  const close = parse(shop.closeTime);
+  return open <= close ? (nowMins >= open && nowMins < close) : (nowMins >= open || nowMins < close);
+};
+
 export default function CustomerShopsScreen({ navigation }) {
   const { linkedShops, menuItems, addToCart, getCartCount } = useApp();
   const { currentUser } = useAuth();
   const [selectedShop, setSelectedShop] = useState(null);
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState({ visible: false, item: null });
+  const [selectedCat, setSelectedCat] = useState('Tất cả');
 
   const isGuest = !currentUser;
   const cartCount = getCartCount(currentUser?.id || '');
@@ -92,8 +103,11 @@ export default function CustomerShopsScreen({ navigation }) {
     ? menuItems.filter(i => i.shopId === selectedShop.userId && i.available)
     : [];
 
+  const shopCats = ['Tất cả', ...Array.from(new Set(shopMenu.map(i => i.category).filter(Boolean)))];
+
   const filtered = shopMenu.filter(i =>
-    i.name.toLowerCase().includes(search.toLowerCase())
+    i.name.toLowerCase().includes(search.toLowerCase()) &&
+    (selectedCat === 'Tất cả' || i.category === selectedCat)
   );
 
   if (selectedShop) {
@@ -101,7 +115,7 @@ export default function CustomerShopsScreen({ navigation }) {
       <View style={styles.container}>
         {/* Header shop */}
         <View style={styles.shopHeader}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => { setSelectedShop(null); setSearch(''); }}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => { setSelectedShop(null); setSearch(''); setSelectedCat('Tất cả'); }}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
@@ -137,6 +151,17 @@ export default function CustomerShopsScreen({ navigation }) {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Category filter */}
+        {shopCats.length > 1 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catBar} contentContainerStyle={styles.catContent}>
+            {shopCats.map(c => (
+              <TouchableOpacity key={c} style={[styles.catChip, selectedCat === c && styles.catChipActive]} onPress={() => setSelectedCat(c)}>
+                <Text style={[styles.catText, selectedCat === c && styles.catTextActive]}>{c}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
         {/* Menu list */}
         <FlatList
@@ -228,6 +253,7 @@ export default function CustomerShopsScreen({ navigation }) {
         contentContainerStyle={{ padding: 12 }}
         renderItem={({ item: shop }) => {
           const shopItemCount = menuItems.filter(i => i.shopId === shop.userId && i.available).length;
+          const isOpen = isShopOpenNow(shop);
           return (
             <TouchableOpacity style={styles.shopCard} onPress={() => setSelectedShop(shop)} activeOpacity={0.85}>
               <View style={styles.shopAvatar}>
@@ -238,11 +264,12 @@ export default function CustomerShopsScreen({ navigation }) {
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={styles.shopName}>{shop.name}</Text>
-                  {shop.shopOpen === false && (
+                  {!isOpen && (
                     <View style={styles.closedBadge}>
                       <Text style={styles.closedBadgeText}>Đóng cửa</Text>
                     </View>
                   )}
+                  {isOpen && <View style={styles.openBadge}><Text style={styles.openBadgeText}>Mở cửa</Text></View>}
                 </View>
                 {shop.description ? <Text style={styles.shopDesc} numberOfLines={1}>{shop.description}</Text> : null}
                 {shop.address ? (
@@ -255,6 +282,12 @@ export default function CustomerShopsScreen({ navigation }) {
                     <Ionicons name="fast-food-outline" size={12} color="#2196F3" />
                     <Text style={styles.shopMetaText}>{shopItemCount} món</Text>
                   </View>
+                  {(shop.openTime || shop.closeTime) && (
+                    <View style={styles.shopMetaChip}>
+                      <Ionicons name="time-outline" size={12} color="#2196F3" />
+                      <Text style={styles.shopMetaText}>{shop.openTime || '?'} – {shop.closeTime || '?'}</Text>
+                    </View>
+                  )}
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
@@ -308,6 +341,14 @@ const styles = StyleSheet.create({
   shopAddr: { fontSize: 12, color: COLORS.gray, marginTop: 3 },
   closedBadge: { backgroundColor: '#F443361A', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
   closedBadgeText: { fontSize: 10, color: '#F44336', fontWeight: 'bold' },
+  openBadge: { backgroundColor: '#E8F5E9', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+  openBadgeText: { fontSize: 10, color: '#4CAF50', fontWeight: 'bold' },
+  catBar: { backgroundColor: '#fff', maxHeight: 46, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  catContent: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
+  catChip: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20, backgroundColor: '#F5F5F5', borderWidth: 1, borderColor: '#F0F0F0', marginRight: 8 },
+  catChipActive: { backgroundColor: '#2196F3', borderColor: '#2196F3' },
+  catText: { fontSize: 13, color: COLORS.gray },
+  catTextActive: { color: '#fff', fontWeight: 'bold' },
   shopMeta: { flexDirection: 'row', gap: 8, marginTop: 6, flexWrap: 'wrap' },
   shopMetaChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,

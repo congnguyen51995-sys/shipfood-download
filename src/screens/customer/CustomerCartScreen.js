@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, Modal, Image,
@@ -9,13 +9,19 @@ import { formatCurrency, COLORS, getDistance, getShippingFee, getPickupSurcharge
 import { Ionicons } from '@expo/vector-icons';
 
 export default function CustomerCartScreen({ navigation }) {
-  const { getCart, getCartTotal, getCartCount, addToCart, removeFromCart, clearCart, placeOrder, getItemTotalPrice, restaurantInfo, bankInfo, getUserOrders, linkedShops } = useApp();
+  const { getCart, getCartTotal, getCartCount, addToCart, removeFromCart, clearCart, placeOrder, getItemTotalPrice, restaurantInfo, bankInfo, getUserOrders, linkedShops, getLoyaltyPoints } = useApp();
   const { currentUser } = useAuth();
   const [address, setAddress] = useState('');
   const [savedLocation, setSavedLocation] = useState(null);
   const [note, setNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [qrModal, setQrModal] = useState(null); // { orderId, amount }
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [usePoints, setUsePoints] = useState(false);
+
+  useEffect(() => {
+    getLoyaltyPoints(currentUser.id).then(d => setLoyaltyPoints(d.points || 0));
+  }, []);
 
   const cart = getCart(currentUser.id);
   const cartTotal = getCartTotal(currentUser.id);
@@ -46,7 +52,10 @@ export default function CustomerCartScreen({ navigation }) {
   const pickupSurcharge = getPickupSurcharge(shopDistanceKm);
   const shopUnavailable = !isShopAvailable(shopDistanceKm);
 
-  const totalAmount = cartTotal + (shippingFee || 0) + pickupSurcharge - discount;
+  const maxPointsDiscount = loyaltyPoints >= 100 ? Math.floor(loyaltyPoints / 100) * 5000 : 0;
+  const pointsDiscount = usePoints ? maxPointsDiscount : 0;
+  const pointsToUse = usePoints ? Math.floor(loyaltyPoints / 100) * 100 : 0;
+  const totalAmount = cartTotal + (shippingFee || 0) + pickupSurcharge - discount - pointsDiscount;
 
   const getQrUrl = (amount, orderId) => {
     if (!bankInfo?.bankId || !bankInfo?.accountNo) return null;
@@ -73,7 +82,7 @@ export default function CustomerCartScreen({ navigation }) {
           onPress: async () => {
             const order = await placeOrder(
               currentUser.id, currentUser.name, currentUser.phone || '',
-              address, savedLocation, note, shippingFee + pickupSurcharge, distanceKm, paymentMethod
+              address, savedLocation, note, shippingFee + pickupSurcharge, distanceKm, paymentMethod, pointsToUse
             );
             if (paymentMethod === 'transfer' && order) {
               setQrModal({ orderId: order.id, amount: totalAmount });
@@ -220,6 +229,24 @@ export default function CustomerCartScreen({ navigation }) {
                 <Text style={styles.discountLabel}>🎟️ Voucher khách mới</Text>
               </View>
               <Text style={styles.discountVal}>-{formatCurrency(discount)}</Text>
+            </View>
+          )}
+          {loyaltyPoints > 0 && (
+            <View style={styles.billRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.billLabel}>🎁 Điểm tích lũy ({loyaltyPoints} điểm)</Text>
+                {maxPointsDiscount > 0 && (
+                  <Text style={styles.distanceNote}>Dùng {pointsToUse} điểm → giảm {formatCurrency(maxPointsDiscount)}</Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={[styles.pointsToggle, usePoints && styles.pointsToggleActive]}
+                onPress={() => setUsePoints(p => !p)}
+              >
+                <Text style={[styles.pointsToggleText, usePoints && { color: '#fff' }]}>
+                  {usePoints ? `−${formatCurrency(maxPointsDiscount)}` : 'Dùng'}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
           <View style={styles.billRow}>
@@ -370,6 +397,9 @@ const styles = StyleSheet.create({
   discountLabelRow: { flex: 1 },
   discountLabel: { fontSize: 13, color: '#4CAF50', fontWeight: '600' },
   discountVal: { fontSize: 14, fontWeight: 'bold', color: '#4CAF50' },
+  pointsToggle: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1.5, borderColor: '#FF9800' },
+  pointsToggleActive: { backgroundColor: '#FF9800', borderColor: '#FF9800' },
+  pointsToggleText: { fontSize: 12, fontWeight: 'bold', color: '#FF9800' },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: COLORS.lightGray },
   orderBtn: { backgroundColor: COLORS.primary, borderRadius: 14, padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   orderBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },

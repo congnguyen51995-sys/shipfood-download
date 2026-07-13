@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   collection, addDoc, onSnapshot, updateDoc, getDoc,
-  doc, query, orderBy, serverTimestamp, deleteDoc, getDocs, setDoc,
+  doc, query, orderBy, serverTimestamp, deleteDoc, getDocs, setDoc, increment, where,
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import * as Notifications from 'expo-notifications';
@@ -408,7 +408,7 @@ export const AppProvider = ({ children }) => {
   // ── ORDERS (Firebase) ─────────────────────────────────────
   const FIRST_ORDER_DISCOUNT = 5000;
 
-  const placeOrder = async (userId, userName, userPhone, deliveryAddress, deliveryLocation, note = '', shippingFee = 15000, distanceKm = null, paymentMethod = 'cash') => {
+  const placeOrder = async (userId, userName, userPhone, deliveryAddress, deliveryLocation, note = '', shippingFee = 15000, distanceKm = null, paymentMethod = 'cash', pointsUsed = 0) => {
     const cart = getCart(userId);
     if (cart.length === 0) return null;
     const total = getCartTotal(userId);
@@ -446,8 +446,11 @@ export const AppProvider = ({ children }) => {
       createdAt: serverTimestamp(),
     };
 
-    const docRef = await addDoc(collection(db, 'orders'), orderData);
+    const docRef = await addDoc(collection(db, 'orders'), { ...orderData, pointsUsed: pointsUsed || 0 });
     clearCart(userId);
+    // Award loyalty points (1 point per 1000đ food)
+    await addLoyaltyPoints(userId, total);
+    if (pointsUsed > 0) await deductLoyaltyPoints(userId, pointsUsed);
 
     // Push notification: báo admin + shop (nếu là đơn shop)
     const itemSummary = orderData.items.slice(0, 2).map(i => i.name).join(', ') + (orderData.items.length > 2 ? '...' : '');
@@ -569,6 +572,73 @@ export const AppProvider = ({ children }) => {
     } catch (e) { console.log('rateOrder error:', e); }
   };
 
+  // ── LOYALTY POINTS ────────────────────────────────────────
+  const getLoyaltyPoints = async (userId) => {
+    try {
+      const snap = await getDoc(doc(db, 'loyaltyPoints', userId));
+      return snap.exists() ? snap.data() : { points: 0, totalEarned: 0 };
+    } catch { return { points: 0, totalEarned: 0 }; }
+  };
+
+  const addLoyaltyPoints = async (userId, spentAmount) => {
+    const earned = Math.floor(spentAmount / 1000);
+    if (!earned) return;
+    try {
+      await setDoc(doc(db, 'loyaltyPoints', userId),
+        { points: increment(earned), totalEarned: increment(earned) },
+        { merge: true });
+    } catch {}
+  };
+
+  const deductLoyaltyPoints = async (userId, points) => {
+    if (!points) return;
+    try {
+      await setDoc(doc(db, 'loyaltyPoints', userId),
+        { points: increment(-points) },
+        { merge: true });
+    } catch {}
+  };
+
+  // ── CHAT ──────────────────────────────────────────────────
+  const sendChatMessage = async (roomId, text, senderRole, senderName, userDisplayName) => {
+    await addDoc(collection(db, 'chats', roomId, 'messages'), {
+      text, senderRole, senderName, createdAt: serverTimestamp(),
+    });
+    const unreadKey = senderRole === 'admin' ? 'unread_user' : 'unread_admin';
+    await setDoc(doc(db, 'chats', roomId), {
+      roomId,
+      ...(userDisplayName ? { userName: userDisplayName } : {}),
+      lastMessage: text, lastAt: serverTimestamp(),
+      [unreadKey]: increment(1),
+    }, { merge: true });
+  };
+
+  const subscribeToChatMessages = (roomId, callback) => {
+    const q = query(collection(db, 'chats', roomId, 'messages'), orderBy('createdAt', 'asc'));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+  };
+
+  const markChatRead = async (roomId, role) => {
+    try {
+      await setDoc(doc(db, 'chats', roomId), { [`unread_${role}`]: 0 }, { merge: true });
+    } catch {}
+  };
+
+  const subscribeToChatList = (callback) => {
+    const q = query(collection(db, 'chats'), orderBy('lastAt', 'desc'));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+  };
+
+  const notifyShipperNearby = async (order) => {
+    if (!order?.userId) return;
+    const token = await getPushToken(order.userId);
+    if (token) await sendPush([token], '🛵 Shipper đang đến gần!', `${order.shipperName || 'Shipper'} sắp đến nơi, vui lòng ra nhận hàng`);
+  };
+
   return (
     <AppContext.Provider value={{
       menuItems, menuLoaded, restaurantInfo, allOrders,
@@ -583,6 +653,9 @@ export const AppProvider = ({ children }) => {
       adBanners, setAdBanners,
       linkedShops, addLinkedShop, updateLinkedShop, deleteLinkedShop,
       placeShopOrder, getShopOrders, rateOrder,
+      getLoyaltyPoints, addLoyaltyPoints, deductLoyaltyPoints,
+      sendChatMessage, subscribeToChatMessages, markChatRead, subscribeToChatList,
+      notifyShipperNearby,
     }}>
       {children}
     </AppContext.Provider>

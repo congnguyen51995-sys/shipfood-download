@@ -50,9 +50,14 @@ export default function CustomerProfileScreen() {
       Alert.alert('Lỗi', e.message);
     } finally { setPassLoading(false); }
   };
-  const { getUserOrders, restaurantInfo } = useApp();
+  const { getUserOrders, restaurantInfo, getLoyaltyPoints } = useApp();
   const orders = getUserOrders(currentUser.id);
   const delivered = orders.filter(o => o.status === 'Đã giao').length;
+  const [loyaltyData, setLoyaltyData] = React.useState({ points: 0, totalEarned: 0 });
+
+  React.useEffect(() => {
+    getLoyaltyPoints(currentUser.id).then(setLoyaltyData);
+  }, []);
 
   const handleLogout = () => {
     Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
@@ -155,6 +160,28 @@ export default function CustomerProfileScreen() {
             <Text style={styles.statLabel}>Đang giao</Text>
           </View>
         </View>
+
+        {/* Loyalty points */}
+        <View style={styles.loyaltyCard}>
+          <View style={styles.loyaltyLeft}>
+            <Ionicons name="gift-outline" size={28} color="#FF9800" />
+            <View>
+              <Text style={styles.loyaltyTitle}>Điểm tích lũy</Text>
+              <Text style={styles.loyaltySub}>100 điểm = giảm 5.000đ</Text>
+            </View>
+          </View>
+          <View style={styles.loyaltyRight}>
+            <Text style={styles.loyaltyPoints}>{loyaltyData.points}</Text>
+            <Text style={styles.loyaltyLabel}>điểm</Text>
+          </View>
+        </View>
+
+        {/* Chat button */}
+        <TouchableOpacity style={styles.chatBtn} onPress={() => navigation.navigate('CustomerChat')}>
+          <Ionicons name="chatbubble-ellipses-outline" size={20} color={COLORS.primary} />
+          <Text style={styles.chatBtnText}>Liên hệ hỗ trợ</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
+        </TouchableOpacity>
 
         {/* Thông tin nhà hàng */}
         <View style={styles.section}>
@@ -269,6 +296,23 @@ const styles = StyleSheet.create({
   changePassText: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
   updateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginHorizontal: 16, marginTop: 4, paddingVertical: 10 },
   updateBtnText: { color: '#FF6B35', fontSize: 13, fontWeight: '600' },
+  loyaltyCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#FFF8E1', marginHorizontal: 12, marginBottom: 10,
+    borderRadius: 14, padding: 16, borderWidth: 1.5, borderColor: '#FFE082',
+  },
+  loyaltyLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  loyaltyTitle: { fontSize: 15, fontWeight: 'bold', color: '#E65100' },
+  loyaltySub: { fontSize: 11, color: '#FF9800', marginTop: 2 },
+  loyaltyRight: { alignItems: 'center' },
+  loyaltyPoints: { fontSize: 28, fontWeight: 'bold', color: '#FF9800' },
+  loyaltyLabel: { fontSize: 11, color: '#E65100', fontWeight: '600' },
+  chatBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 10,
+    borderRadius: 14, padding: 14, elevation: 2,
+  },
+  chatBtnText: { flex: 1, fontSize: 15, fontWeight: '600', color: COLORS.dark },
   deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginHorizontal: 16, marginTop: 4, paddingVertical: 10 },
   deleteText: { color: COLORS.danger, fontSize: 13 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },

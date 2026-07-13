@@ -61,6 +61,8 @@ export default function ShopProfileScreen({ navigation }) {
   const [shopPhone, setShopPhone] = useState(currentUser.phone || '');
   const [shopDescription, setShopDescription] = useState(shopDoc?.description || '');
   const [shopAvatar, setShopAvatar] = useState(shopDoc?.avatar || null);
+  const [openTime, setOpenTime] = useState(shopDoc?.openTime || '07:00');
+  const [closeTime, setCloseTime] = useState(shopDoc?.closeTime || '22:00');
 
   const pickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -78,7 +80,7 @@ export default function ShopProfileScreen({ navigation }) {
     const updated = { ...currentUser, shopName, phone: shopPhone };
     await AsyncStorage.setItem('current_user', JSON.stringify(updated));
     if (shopDoc) {
-      await updateLinkedShop(shopDoc.id, { name: shopName, phone: shopPhone, description: shopDescription, avatar: shopAvatar || null });
+      await updateLinkedShop(shopDoc.id, { name: shopName, phone: shopPhone, description: shopDescription, avatar: shopAvatar || null, openTime, closeTime });
     }
     Alert.alert('Đã lưu', 'Thông tin quán đã được cập nhật.');
     setShowEdit(false);
@@ -263,6 +265,24 @@ export default function ShopProfileScreen({ navigation }) {
             placeholderTextColor={COLORS.gray}
             multiline
           />
+          <Text style={styles.fieldLabel}>Giờ mở cửa</Text>
+          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+            <TextInput
+              style={[styles.fieldInput, { flex: 1 }]}
+              value={openTime}
+              onChangeText={setOpenTime}
+              placeholder="07:00"
+              placeholderTextColor={COLORS.gray}
+            />
+            <Text style={{ color: COLORS.gray, fontWeight: 'bold' }}>→</Text>
+            <TextInput
+              style={[styles.fieldInput, { flex: 1 }]}
+              value={closeTime}
+              onChangeText={setCloseTime}
+              placeholder="22:00"
+              placeholderTextColor={COLORS.gray}
+            />
+          </View>
         </ScrollView>
       </Modal>
     </View>
