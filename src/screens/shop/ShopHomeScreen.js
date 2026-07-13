@@ -23,20 +23,42 @@ export default function ShopHomeScreen({ navigation }) {
   const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [locationModal, setLocationModal] = useState(false);
+  const [nameModal, setNameModal] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [savingName, setSavingName] = useState(false);
   const [pinning, setPinning] = useState(false);
   const checkedRef = useRef(false);
 
   const shopDoc = linkedShops.find(s => s.userId === currentUser.id);
   const shopIsOpen = shopDoc?.shopOpen !== false;
 
-  // Nhắc ghim vị trí nếu shop chưa có GPS
+  // Bắt buộc nhập tên quán nếu chưa có
+  useEffect(() => {
+    if (!shopDoc) return;
+    if (!shopDoc.name && !shopDoc.shopName) {
+      setNameModal(true);
+    }
+  }, [shopDoc]);
+
+  // Nhắc ghim vị trí nếu shop chưa có GPS (chỉ sau khi đã có tên)
   useEffect(() => {
     if (checkedRef.current || !shopDoc) return;
+    if (!shopDoc.name && !shopDoc.shopName) return; // chờ nhập tên trước
     if (!shopDoc.location) {
       checkedRef.current = true;
       setLocationModal(true);
     }
   }, [shopDoc]);
+
+  const handleSaveName = async () => {
+    if (!nameInput.trim()) { Alert.alert('Vui lòng nhập tên quán'); return; }
+    setSavingName(true);
+    try {
+      await updateLinkedShop(shopDoc.id, { name: nameInput.trim() });
+      setNameModal(false);
+    } catch { Alert.alert('Lỗi', 'Không lưu được tên quán. Vui lòng thử lại.'); }
+    setSavingName(false);
+  };
 
   const handlePinLocation = async () => {
     setPinning(true);
@@ -167,6 +189,37 @@ export default function ShopHomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#2196F3" />
+
+      {/* Modal bắt buộc nhập tên quán */}
+      <Modal visible={nameModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <View style={[styles.modalIcon, { backgroundColor: '#FF6B35' }]}>
+              <Ionicons name="storefront" size={36} color="#fff" />
+            </View>
+            <Text style={styles.modalTitle}>Đặt tên cho quán</Text>
+            <Text style={styles.modalDesc}>
+              Khách hàng sẽ thấy tên quán khi tìm kiếm. Vui lòng nhập tên quán của bạn để tiếp tục.
+            </Text>
+            <TextInput
+              style={{ borderWidth: 1.5, borderColor: '#FF6B35', borderRadius: 10, padding: 12, fontSize: 16, marginVertical: 12, color: '#1A1A2E' }}
+              placeholder="Ví dụ: Sài Gòn Quán, Mây Coffee..."
+              placeholderTextColor="#aaa"
+              value={nameInput}
+              onChangeText={setNameInput}
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.modalPinBtn, { backgroundColor: '#FF6B35' }, savingName && { opacity: 0.7 }]}
+              onPress={handleSaveName}
+              disabled={savingName}
+            >
+              <Ionicons name="checkmark-circle" size={18} color="#fff" />
+              <Text style={styles.modalPinBtnText}>{savingName ? 'Đang lưu...' : 'Xác nhận tên quán'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Modal bắt buộc ghim vị trí quán */}
       <Modal visible={locationModal} transparent animationType="fade">
