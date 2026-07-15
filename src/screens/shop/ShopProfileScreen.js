@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, TextInput, Modal, ActivityIndicator, Image,
 } from 'react-native';
@@ -54,8 +54,14 @@ export default function ShopProfileScreen({ navigation }) {
       Alert.alert('Lỗi', e.message);
     } finally { setPassLoading(false); }
   };
-  const { linkedShops, updateLinkedShop } = useApp();
+  const { linkedShops, updateLinkedShop, subscribeNotifications } = useApp();
   const shopDoc = linkedShops.find(s => s.userId === currentUser.id);
+  const [unreadCount, setUnreadCount] = useState(0);
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsub = subscribeNotifications(currentUser.id, n => setUnreadCount(n.filter(x => !x.read).length));
+    return () => unsub();
+  }, [currentUser?.id]);
   const [showEdit, setShowEdit] = useState(false);
   const [shopName, setShopName] = useState(currentUser.shopName || currentUser.name);
   const [shopPhone, setShopPhone] = useState(currentUser.phone || '');
@@ -63,6 +69,7 @@ export default function ShopProfileScreen({ navigation }) {
   const [shopAvatar, setShopAvatar] = useState(shopDoc?.avatar || null);
   const [openTime, setOpenTime] = useState(shopDoc?.openTime || '07:00');
   const [closeTime, setCloseTime] = useState(shopDoc?.closeTime || '22:00');
+  const [minOrder, setMinOrder] = useState(String(shopDoc?.minOrder || '0'));
 
   const pickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -80,7 +87,7 @@ export default function ShopProfileScreen({ navigation }) {
     const updated = { ...currentUser, shopName, phone: shopPhone };
     await AsyncStorage.setItem('current_user', JSON.stringify(updated));
     if (shopDoc) {
-      await updateLinkedShop(shopDoc.id, { name: shopName, phone: shopPhone, description: shopDescription, avatar: shopAvatar || null, openTime, closeTime });
+      await updateLinkedShop(shopDoc.id, { name: shopName, phone: shopPhone, description: shopDescription, avatar: shopAvatar || null, openTime, closeTime, minOrder: parseInt(minOrder) || 0 });
     }
     Alert.alert('Đã lưu', 'Thông tin quán đã được cập nhật.');
     setShowEdit(false);
@@ -162,6 +169,19 @@ export default function ShopProfileScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+
+        <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('ShopNotifications')}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 }}>
+            <Ionicons name="notifications-outline" size={20} color="#9C27B0" />
+            <Text style={styles.notifBtnText}>Lịch sử thông báo</Text>
+          </View>
+          {unreadCount > 0 && (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
+          <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={() =>
           Alert.alert('Đăng xuất?', '', [
@@ -283,6 +303,15 @@ export default function ShopProfileScreen({ navigation }) {
               placeholderTextColor={COLORS.gray}
             />
           </View>
+          <Text style={styles.fieldLabel}>Đơn hàng tối thiểu (đ)</Text>
+          <TextInput
+            style={styles.fieldInput}
+            value={minOrder}
+            onChangeText={setMinOrder}
+            placeholder="0 (không giới hạn)"
+            placeholderTextColor={COLORS.gray}
+            keyboardType="numeric"
+          />
         </ScrollView>
       </Modal>
     </View>
@@ -312,6 +341,10 @@ const styles = StyleSheet.create({
   gpsMissing: { fontSize: 12, color: COLORS.warning, marginTop: 2 },
   gpsPinBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#2196F3', borderRadius: 10, padding: 10 },
   gpsPinBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  notifBtn: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 8, paddingVertical: 13, paddingHorizontal: 16, backgroundColor: '#F3E5F5', borderRadius: 12, gap: 6 },
+  notifBtnText: { flex: 1, fontSize: 15, fontWeight: '600', color: '#7B1FA2' },
+  notifBadge: { backgroundColor: '#9C27B0', borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 5, marginRight: 4 },
+  notifBadgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.danger, margin: 16, marginTop: 8, padding: 15, borderRadius: 14, gap: 8 },
   logoutText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
   changePassBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginHorizontal: 16, marginTop: 4, paddingVertical: 10 },

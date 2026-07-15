@@ -47,6 +47,8 @@ import CustomerSearchScreen from '../screens/customer/CustomerSearchScreen';
 import CustomerNotificationsScreen from '../screens/customer/CustomerNotificationsScreen';
 import CustomerFavoritesScreen from '../screens/customer/CustomerFavoritesScreen';
 import AdminChatScreen from '../screens/admin/AdminChatScreen';
+import OnboardingScreen, { ONBOARDING_KEY } from '../screens/OnboardingScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -257,6 +259,7 @@ function ShopStack() {
       <Stack.Screen name="ShopCreate" component={ShopCreateOrderScreen} />
       <Stack.Screen name="ShopCart" component={CustomerCartScreen} />
       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
+      <Stack.Screen name="ShopNotifications" component={CustomerNotificationsScreen} />
     </Stack.Navigator>
   );
 }
@@ -265,6 +268,7 @@ function ShopStack() {
 export default function AppNavigator() {
   const { isLoggedIn, isAdmin, isShipper, isShop, loading, currentUser } = useAuth();
   const { setCurrentUserRole, savePushToken } = useApp();
+  const [onboardingDone, setOnboardingDone] = React.useState(null);
 
   useEffect(() => {
     setCurrentUserRole(currentUser?.role || null);
@@ -273,12 +277,20 @@ export default function AppNavigator() {
     }
   }, [currentUser?.id]);
 
-  if (loading) {
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_KEY).then(v => setOnboardingDone(!!v));
+  }, []);
+
+  if (loading || onboardingDone === null) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
+  }
+
+  if (!onboardingDone) {
+    return <OnboardingScreen onDone={() => setOnboardingDone(true)} />;
   }
 
   return (
