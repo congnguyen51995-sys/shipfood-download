@@ -2100,7 +2100,7 @@ window.sendBroadcast=async function(){
     // Lưu vào Firestore notifications cho từng user
     const now=new Date().toISOString();
     await Promise.all(items.map(({userId})=>
-      addDoc(collection(db,'notifications'),{userId,title,body,type:'broadcast',read:false,createdAt:now})
+      addDoc(collection(db,'notifications',userId,'items'),{title,body,type:'broadcast',read:false,createdAt:now})
     ));
     document.getElementById('bcTitle').value='';
     document.getElementById('bcBody').value='';
