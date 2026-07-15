@@ -451,6 +451,7 @@ export const AppProvider = ({ children }) => {
     // Award 1 loyalty point per order
     await addLoyaltyPoints(userId);
     if (pointsUsed > 0) await deductLoyaltyPoints(userId, pointsUsed);
+    await checkReferralReward(userId);
 
     // Push notification: báo admin + shop (nếu là đơn shop)
     const itemSummary = orderData.items.slice(0, 2).map(i => i.name).join(', ') + (orderData.items.length > 2 ? '...' : '');
@@ -477,6 +478,10 @@ export const AppProvider = ({ children }) => {
       if (shopToken) await sendPush([shopToken], '📦 Đơn mới cần xác nhận!', `${userName} · ${itemSummary} · ${amountStr}`);
     } else {
       await sendPush([...adminTokens, ...shipperTokens], '📦 Đơn hàng mới!', `${userName} · ${itemSummary} · ${amountStr}`);
+    }
+
+    if (paymentMethod === 'transfer' && adminTokens.length) {
+      await sendPush(adminTokens, '💳 Đơn chuyển khoản mới!', `${userName} · ${amountStr} · chờ xác nhận thanh toán`);
     }
 
     return { id: docRef.id, ...orderData };
@@ -594,6 +599,12 @@ export const AppProvider = ({ children }) => {
       await setDoc(doc(db, 'loyaltyPoints', userId),
         { points: increment(1), totalEarned: increment(1) },
         { merge: true });
+      const snap = await getDoc(doc(db, 'loyaltyPoints', userId));
+      const newPoints = snap.exists() ? (snap.data().points || 0) : 0;
+      if (newPoints > 0 && newPoints % 10 === 0) {
+        const discount = Math.floor(newPoints / 10) * 1000;
+        await saveNotification(userId, '🎁 Đủ điểm giảm giá!', `Bạn có ${newPoints} điểm, có thể giảm ${formatCurrencySimple(discount)} cho đơn tiếp theo`);
+      }
     } catch {}
   };
 
@@ -689,6 +700,88 @@ export const AppProvider = ({ children }) => {
     } catch {}
   };
 
+  // ── CANCEL ORDER BY CUSTOMER ──────────────────────────────
+  const cancelOrderByCustomer = async (orderId, order = null) => {
+    await updateDoc(doc(db, 'orders', orderId), { status: 'Đã hủy', cancelReason: 'Khách hủy đơn' });
+    if (order?.userId) {
+      const adminTokens = await getTokensByRole('admin');
+      if (adminTokens.length) await sendPush(adminTokens, '❌ Khách hủy đơn', `${order.userName || 'Khách'} đã hủy đơn hàng`);
+    }
+  };
+
+  // ── BROADCAST PUSH TO ALL CUSTOMERS ───────────────────────
+  const broadcastPushToCustomers = async (title, body) => {
+    try {
+      const snap = await getDocs(collection(db, 'pushTokens'));
+      const items = snap.docs.map(d => ({ userId: d.id, token: d.data().token }));
+      const tokens = items.map(i => i.token).filter(Boolean);
+      if (tokens.length) await sendPush(tokens, title, body);
+      await Promise.all(items.map(({ userId }) => saveNotification(userId, title, body)));
+    } catch {}
+  };
+
+  // ── BROADCAST QUEUE LISTENER (admin processes web-triggered broadcasts) ──
+  useEffect(() => {
+    const q = query(collection(db, 'broadcastQueue'), where('status', '==', 'pending'));
+    const unsub = onSnapshot(q, async (snap) => {
+      if (currentUserRoleRef.current !== 'admin') return;
+      for (const d of snap.docs) {
+        const { title, body } = d.data();
+        try {
+          await updateDoc(d.ref, { status: 'processing' });
+          await broadcastPushToCustomers(title, body);
+          await updateDoc(d.ref, { status: 'done' });
+        } catch {
+          await updateDoc(d.ref, { status: 'error' }).catch(() => {});
+        }
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // ── UPDATE USER NAME ──────────────────────────────────────
+  const updateUserName = async (userId, name) => {
+    await updateDoc(doc(db, 'users', userId), { name });
+  };
+
+  // ── REFERRAL ──────────────────────────────────────────────
+  const generateReferralCode = (userId) => userId.slice(-6).toUpperCase();
+
+  const applyReferralCode = async (newUserId, code) => {
+    try {
+      const snap = await getDocs(collection(db, 'users'));
+      const referrer = snap.docs.find(d => d.id.slice(-6).toUpperCase() === code.toUpperCase() && d.id !== newUserId);
+      if (!referrer) return false;
+      // Reward referrer +5 points when new user places their first order
+      await setDoc(doc(db, 'referrals', newUserId), { referrerId: referrer.id, rewarded: false });
+      return true;
+    } catch { return false; }
+  };
+
+  // Called in placeOrder to check & reward referral on first order
+  const checkReferralReward = async (userId) => {
+    try {
+      const refSnap = await getDoc(doc(db, 'referrals', userId));
+      if (!refSnap.exists() || refSnap.data().rewarded) return;
+      const { referrerId } = refSnap.data();
+      await setDoc(doc(db, 'loyaltyPoints', referrerId),
+        { points: increment(10), totalEarned: increment(10) }, { merge: true });
+      await setDoc(doc(db, 'loyaltyPoints', userId),
+        { points: increment(5), totalEarned: increment(5) }, { merge: true });
+      await updateDoc(doc(db, 'referrals', userId), { rewarded: true });
+      await saveNotification(referrerId, '🎉 Bạn bè đặt đơn đầu tiên!', 'Bạn nhận được +10 điểm thưởng từ chương trình giới thiệu');
+      await saveNotification(userId, '🎁 Điểm chào mừng!', 'Bạn nhận +5 điểm từ mã giới thiệu');
+    } catch {}
+  };
+
+  // ── SHOP MIN ORDER & AVG RATING ───────────────────────────
+  const getShopAvgRating = (shopUserId) => {
+    const shopOrders = allOrders.filter(o => o.shopId === shopUserId && o.rating?.stars);
+    if (!shopOrders.length) return null;
+    const avg = shopOrders.reduce((s, o) => s + o.rating.stars, 0) / shopOrders.length;
+    return { avg: Math.round(avg * 10) / 10, count: shopOrders.length };
+  };
+
   return (
     <AppContext.Provider value={{
       menuItems, menuLoaded, restaurantInfo, allOrders,
@@ -708,6 +801,9 @@ export const AppProvider = ({ children }) => {
       notifyShipperNearby,
       toggleFavorite, subscribeFavorites,
       saveNotification, subscribeNotifications, markAllNotificationsRead,
+      cancelOrderByCustomer, broadcastPushToCustomers, updateUserName,
+      generateReferralCode, applyReferralCode,
+      getShopAvgRating,
     }}>
       {children}
     </AppContext.Provider>

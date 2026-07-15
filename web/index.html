@@ -2089,21 +2089,8 @@ window.sendBroadcast=async function(){
     const snap=await getDocs(collection(db,'pushTokens'));
     const items=snap.docs.map(d=>({userId:d.id,token:d.data().token}));
     const tokens=items.map(i=>i.token).filter(t=>t&&String(t).startsWith('ExponentPushToken'));
-    // Gửi push notification qua Expo API
-    let pushOk=false;
-    if(tokens.length){
-      try{
-        const res=await fetch('https://exp.host/--/api/v2/push/send',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Accept':'application/json'},
-          body:JSON.stringify(tokens.map(to=>({to,title,body,sound:'default',priority:'high',channelId:'orders'})))
-        });
-        if(res.ok) pushOk=true;
-        else showToast('Push lỗi HTTP: '+res.status);
-      }catch(err){
-        showToast('Push lỗi: '+err.message);
-      }
-    }
+    // Ghi vào broadcastQueue — admin app sẽ tự gửi push (tránh CORS)
+    await addDoc(collection(db,'broadcastQueue'),{title,body,status:'pending',createdAt:new Date().toISOString()});
     // Lưu vào Firestore notifications cho từng user
     const now=new Date().toISOString();
     await Promise.all(items.map(({userId})=>
@@ -2111,7 +2098,7 @@ window.sendBroadcast=async function(){
     ));
     document.getElementById('bcTitle').value='';
     document.getElementById('bcBody').value='';
-    showToast(pushOk?`✅ Đã gửi push tới ${tokens.length} thiết bị`:`✅ Đã lưu thông báo cho ${items.length} người dùng (push: ${tokens.length} token)`);
+    showToast(`✅ Đã gửi tới ${items.length} người dùng`);
   }catch(e){showToast('Lỗi gửi: '+e.message);}
   finally{btn.disabled=false;btn.innerHTML='<span>📤</span><span>Gửi ngay</span>';}
 };
