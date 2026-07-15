@@ -2077,6 +2077,37 @@ const STATUS_COLOR_MAP={
   'Đã lấy hàng':'#00BCD4','Đang giao':'#FF9800','Đã giao':'#4CAF50','Đã hủy':'#9E9E9E'
 };
 
+window.sendBroadcast=async function(){
+  const title=document.getElementById('bcTitle').value.trim();
+  const body=document.getElementById('bcBody').value.trim();
+  if(!title)return showToast('Vui lòng nhập tiêu đề');
+  if(!body)return showToast('Vui lòng nhập nội dung');
+  const btn=document.getElementById('bcBtn');
+  btn.disabled=true;btn.innerHTML='<span>⏳</span><span>Đang gửi...</span>';
+  try{
+    // Lấy tất cả push tokens
+    const snap=await getDocs(collection(db,'pushTokens'));
+    const items=snap.docs.map(d=>({userId:d.id,token:d.data().token}));
+    const tokens=items.map(i=>i.token).filter(t=>t&&String(t).startsWith('ExponentPushToken'));
+    // Gửi push notification
+    if(tokens.length){
+      await fetch('https://exp.host/--/api/v2/push/send',{
+        method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify(tokens.map(to=>({to,title,body,sound:'default',priority:'high',channelId:'orders'})))
+      });
+    }
+    // Lưu vào Firestore notifications cho từng user
+    const now=new Date().toISOString();
+    await Promise.all(items.map(({userId})=>
+      addDoc(collection(db,'notifications'),{userId,title,body,type:'broadcast',read:false,createdAt:now})
+    ));
+    document.getElementById('bcTitle').value='';
+    document.getElementById('bcBody').value='';
+    showToast(`✅ Đã gửi tới ${items.length} người dùng`);
+  }catch(e){showToast('Lỗi gửi: '+e.message);}
+  finally{btn.disabled=false;btn.innerHTML='<span>📤</span><span>Gửi ngay</span>';}
+};
+
 window.loadAdmUsers=async function(){
   document.getElementById('admUsersBody').innerHTML='<div class="loading"><div class="spin"></div></div>';
   try{
@@ -2117,6 +2148,25 @@ function renderAdmUsers(codes){
 
   document.getElementById('admUsersBody').innerHTML=`
   <div style="padding:12px">
+
+    <!-- Broadcast card -->
+    <div style="background:linear-gradient(135deg,#7B1FA2,#9C27B0);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(123,31,162,.25)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:42px;height:42px;border-radius:21px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px">📢</div>
+        <div>
+          <div style="font-size:15px;font-weight:800;color:#fff">Gửi thông báo toàn hệ thống</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.75)">Tất cả khách hàng sẽ nhận được</div>
+        </div>
+      </div>
+      <input id="bcTitle" placeholder="Tiêu đề thông báo..." maxlength="80"
+        style="width:100%;padding:10px 12px;border-radius:10px;border:none;font-size:14px;margin-bottom:8px;outline:none;background:rgba(255,255,255,.95)"/>
+      <textarea id="bcBody" placeholder="Nội dung thông báo..." rows="3" maxlength="300"
+        style="width:100%;padding:10px 12px;border-radius:10px;border:none;font-size:14px;resize:none;outline:none;background:rgba(255,255,255,.95);font-family:inherit"></textarea>
+      <button onclick="sendBroadcast()" id="bcBtn"
+        style="margin-top:10px;width:100%;padding:12px;border-radius:12px;border:none;background:#fff;color:#7B1FA2;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        <span>📤</span><span>Gửi ngay</span>
+      </button>
+    </div>
 
     <!-- Stats row -->
     <div style="display:flex;gap:10px;margin-bottom:12px">
