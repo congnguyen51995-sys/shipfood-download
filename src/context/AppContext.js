@@ -190,15 +190,9 @@ export const AppProvider = ({ children }) => {
       // Skip local pending write snapshots to avoid iOS New Architecture crash
       if (snapshot.metadata.hasPendingWrites) return;
       try {
-        if (snapshot.empty && isFirstMenuLoad.current) {
-          for (const item of DEFAULT_MENU) {
-            await addDoc(collection(db, 'menu'), { ...item, createdAt: new Date().toISOString() });
-          }
-        } else {
-          const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-          setMenuItems(items);
-          setMenuLoaded(true);
-        }
+        const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        setMenuItems(items);
+        setMenuLoaded(true);
         isFirstMenuLoad.current = false;
       } catch (e) {
         console.error('Menu snapshot error:', e);
