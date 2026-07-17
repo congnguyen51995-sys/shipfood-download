@@ -305,15 +305,21 @@ export const AppProvider = ({ children }) => {
   };
 
   const sendPush = async (tokens, title, body) => {
-    const valid = (Array.isArray(tokens) ? tokens : [tokens]).filter(t => t && String(t).startsWith('ExponentPushToken'));
-    if (!valid.length) return;
+    const valid = (Array.isArray(tokens) ? tokens : [tokens]).filter(t => t && (String(t).startsWith('ExponentPushToken') || String(t).startsWith('ExpoPushToken')));
+    if (!valid.length) { console.log('sendPush: no valid tokens', tokens); return; }
     try {
-      await fetch('https://exp.host/--/api/v2/push/send', {
+      const res = await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(valid.map(to => ({ to, title, body, sound: 'default', priority: 'high', channelId: 'orders' }))),
       });
-    } catch (e) { console.log('sendPush error:', e); }
+      const json = await res.json().catch(() => null);
+      if (json?.data) {
+        json.data.forEach((r, i) => {
+          if (r.status === 'error') console.log(`sendPush error [${valid[i]}]:`, r.message, r.details);
+        });
+      }
+    } catch (e) { console.log('sendPush fetch error:', e); }
   };
 
   const getPushToken = async (userId) => {
