@@ -122,6 +122,13 @@ export default function AdminOrdersScreen() {
               </View>
             </View>
 
+            {item.shopName && (
+              <View style={styles.shopRow}>
+                <Ionicons name="storefront-outline" size={13} color="#9C27B0" />
+                <Text style={styles.shopText}>Lấy tại: {item.shopName}</Text>
+              </View>
+            )}
+
             {item.shipperName && (
               <View style={styles.shipperRow}>
                 <Ionicons name="bicycle-outline" size={13} color="#FF9800" />
@@ -235,6 +242,8 @@ const styles = StyleSheet.create({
   customerPhone: { fontSize: 12, color: COLORS.primary, marginTop: 1 },
   statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusPillText: { fontSize: 12, fontWeight: 'bold' },
+  shopRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F3E5F5', borderRadius: 8, padding: 6, marginBottom: 6 },
+  shopText: { fontSize: 12, color: '#7B1FA2', fontWeight: '700' },
   shipperRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF3E0', borderRadius: 8, padding: 6, marginBottom: 8 },
   shipperText: { fontSize: 12, color: '#E65100', fontWeight: '600' },
   itemsBox: { backgroundColor: COLORS.background, borderRadius: 10, padding: 10, marginBottom: 10 },
