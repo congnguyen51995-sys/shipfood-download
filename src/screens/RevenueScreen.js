@@ -144,18 +144,22 @@ export default function RevenueScreen() {
   const shopId = isAdmin ? null : currentUser?.id;
   const accentColor = isAdmin ? COLORS.primary : '#2196F3';
 
-  const s = startOf(period, base);
-  const e = endOf(period, base);
+  const s = useMemo(() => startOf(period, base), [period, base]);
+  const e = useMemo(() => endOf(period, base), [period, base]);
   const isCurrentPeriod = new Date() >= s && new Date() <= e;
 
   const periodOrders = useMemo(() => {
     return allOrders.filter(o => {
       if (o.status !== 'Đã giao') return false;
-      if (shopId && o.shopId !== shopId) return false;
+      if (shopId) {
+        // Tính cả đơn nhiều quán: kiểm tra order-level shopId hoặc items có shopId khớp
+        const inItems = (o.items || []).some(i => i.shopId === shopId);
+        if (o.shopId !== shopId && !inItems) return false;
+      }
       const t = toDate(o.createdAt);
       return t >= s && t <= e;
     });
-  }, [allOrders, period, base, shopId]);
+  }, [allOrders, shopId, s, e]);
 
   const foodRevenue = periodOrders.reduce((sum, o) => sum + calcFood(o), 0);
   const shipRevenue = periodOrders.reduce((sum, o) => sum + (o.shippingFee || 0), 0);
