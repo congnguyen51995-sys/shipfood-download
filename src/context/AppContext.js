@@ -505,14 +505,19 @@ export const AppProvider = ({ children }) => {
   };
 
   const confirmShopOrder = async (orderId, order = null) => {
-    await updateDoc(doc(db, 'orders', orderId), { status: 'Chờ xác nhận' });
-    const [shipperTokens, customerToken] = await Promise.all([
-      getTokensByRole('shipper'),
-      order?.userId ? getPushToken(order.userId) : Promise.resolve(null),
-    ]);
-    await sendPush(shipperTokens, '🛵 Có đơn mới cần giao!', 'Quán đã xác nhận — vào app nhận đơn ngay');
-    if (customerToken) await sendPush([customerToken], '✅ Quán đã xác nhận!', 'Đơn của bạn đã được xác nhận, đang chờ shipper');
-    if (order?.userId) await saveNotification(order.userId, '✅ Quán đã xác nhận!', 'Đơn của bạn đã được xác nhận, đang chờ shipper');
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { status: 'Chờ xác nhận' });
+      const [shipperTokens, customerToken] = await Promise.all([
+        getTokensByRole('shipper'),
+        order?.userId ? getPushToken(order.userId) : Promise.resolve(null),
+      ]);
+      await sendPush(shipperTokens, '🛵 Có đơn mới cần giao!', 'Quán đã xác nhận — vào app nhận đơn ngay');
+      if (customerToken) await sendPush([customerToken], '✅ Quán đã xác nhận!', 'Đơn của bạn đã được xác nhận, đang chờ shipper');
+      if (order?.userId) await saveNotification(order.userId, '✅ Quán đã xác nhận!', 'Đơn của bạn đã được xác nhận, đang chờ shipper');
+    } catch (e) {
+      const { Alert } = require('react-native');
+      Alert.alert('Lỗi xác nhận đơn', e?.message || String(e));
+    }
   };
 
   const confirmTransferPayment = async (orderId) => {
