@@ -310,6 +310,9 @@ export default function RevenueScreen() {
             <View style={styles.emptyChart}>
               <Ionicons name="bar-chart-outline" size={40} color={COLORS.lightGray} />
               <Text style={{ color: COLORS.gray, marginTop: 8, fontSize: 13 }}>Chưa có đơn hàng trong kỳ này</Text>
+              <Text style={{ color: COLORS.gray, marginTop: 4, fontSize: 11 }}>
+                (Tổng tất cả: {allOrders.filter(o => o.status === 'Đã giao').length} đơn đã giao / {allOrders.length} đơn)
+              </Text>
             </View>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
