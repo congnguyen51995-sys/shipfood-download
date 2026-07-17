@@ -122,18 +122,6 @@ export default function AdminOrdersScreen() {
               </View>
             </View>
 
-            {(() => {
-              const shops = [...new Set(
-                (item.items || []).map(f => f.shopName).filter(Boolean)
-              )];
-              const display = shops.length > 0 ? shops : (item.shopName ? [item.shopName] : []);
-              return display.length > 0 ? (
-                <View style={styles.shopRow}>
-                  <Ionicons name="storefront-outline" size={13} color="#9C27B0" />
-                  <Text style={styles.shopText}>Lấy tại: {display.join(' · ')}</Text>
-                </View>
-              ) : null;
-            })()}
 
             {item.shipperName && (
               <View style={styles.shipperRow}>
@@ -148,6 +136,9 @@ export default function AdminOrdersScreen() {
                   <Text style={styles.foodQty}>{f.quantity || f.qty || 1}x</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.foodName}>{f.name}</Text>
+                    {f.shopName ? (
+                      <Text style={styles.foodShop}>🏪 {f.shopName}</Text>
+                    ) : null}
                     {f.selectedToppings?.length > 0 && (
                       <Text style={styles.foodTopping}>
                         Kèm: {f.selectedToppings.map(t => t.name.replace('Thêm ', '')).join(', ')}
@@ -248,8 +239,7 @@ const styles = StyleSheet.create({
   customerPhone: { fontSize: 12, color: COLORS.primary, marginTop: 1 },
   statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusPillText: { fontSize: 12, fontWeight: 'bold' },
-  shopRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F3E5F5', borderRadius: 8, padding: 6, marginBottom: 6 },
-  shopText: { fontSize: 12, color: '#7B1FA2', fontWeight: '700' },
+  foodShop: { fontSize: 11, color: '#7B1FA2', fontWeight: '600', marginTop: 1 },
   shipperRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF3E0', borderRadius: 8, padding: 6, marginBottom: 8 },
   shipperText: { fontSize: 12, color: '#E65100', fontWeight: '600' },
   itemsBox: { backgroundColor: COLORS.background, borderRadius: 10, padding: 10, marginBottom: 10 },
