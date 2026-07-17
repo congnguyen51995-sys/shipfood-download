@@ -122,12 +122,18 @@ export default function AdminOrdersScreen() {
               </View>
             </View>
 
-            {item.shopName && (
-              <View style={styles.shopRow}>
-                <Ionicons name="storefront-outline" size={13} color="#9C27B0" />
-                <Text style={styles.shopText}>Lấy tại: {item.shopName}</Text>
-              </View>
-            )}
+            {(() => {
+              const shops = [...new Set(
+                (item.items || []).map(f => f.shopName).filter(Boolean)
+              )];
+              const display = shops.length > 0 ? shops : (item.shopName ? [item.shopName] : []);
+              return display.length > 0 ? (
+                <View style={styles.shopRow}>
+                  <Ionicons name="storefront-outline" size={13} color="#9C27B0" />
+                  <Text style={styles.shopText}>Lấy tại: {display.join(' · ')}</Text>
+                </View>
+              ) : null;
+            })()}
 
             {item.shipperName && (
               <View style={styles.shipperRow}>
