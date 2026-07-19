@@ -2050,6 +2050,9 @@ window.saveMenuItem=async function(){
     if(_mfBase64Image){image=_mfBase64Image;}
     else if(isUrl){image=emojiOrImg;}
     else{emoji=emojiOrImg;}
+    // Bắt buộc shop phải up ảnh
+    if(user.role==='shop'&&!image&&!editMenuId){showToast('⚠️ Vui lòng chọn ảnh cho món ăn');return;}
+    if(user.role==='shop'&&editMenuId){const ex=menuItems.find(i=>i.id===editMenuId);if(!image&&!ex?.image){showToast('⚠️ Vui lòng chọn ảnh cho món ăn');return;}}
     data={
       name,price:finalPrice,basePrice:price,available,saleStart,saleEnd,
       description:document.getElementById('mfDesc').value.trim(),

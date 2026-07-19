@@ -120,6 +120,7 @@ const FormModal = memo(({ onClose, onSave, initial, shopId, shopName }) => {
     if (savingRef.current) return; // prevent double-tap crash on iOS
     if (!name.trim()) return Alert.alert('Lỗi', 'Vui lòng nhập tên món');
     if (isNaN(sp) || sp <= 0) return Alert.alert('Lỗi', 'Vui lòng nhập giá gốc hợp lệ');
+    if (!image) return Alert.alert('Thiếu ảnh', 'Vui lòng chọn ảnh cho món ăn trước khi lưu');
     savingRef.current = true;
     setUploading(true);
     try {
