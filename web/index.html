@@ -827,6 +827,15 @@ async function setupOrderNotifications(){
       const count=snap.size;
       // Always keep allOrders up to date
       allOrders=snap.docs.map(d=>({id:d.id,...d.data()}));
+      // Re-render whichever order page is currently visible
+      const _cur=document.querySelector('.pg.on');
+      if(_cur){
+        const _pgId=_cur.id.replace('pg-','');
+        if(_pgId==='adm-orders')loadAdmOrders();
+        else if(_pgId==='shop-orders')loadShopOrders();
+        else if(_pgId==='ship-orders')loadShipOrders();
+        else if(_pgId==='orders')loadMyOrders();
+      }
       if(_prevOrderCount===-1){_prevOrderCount=count;return;}// first load, don't notify
       if(count>_prevOrderCount){
         const newest=snap.docs[0]?.data()||{};

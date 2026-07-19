@@ -112,9 +112,10 @@ export default function AdminOrdersScreen() {
                   <Ionicons name="person-outline" size={12} color={COLORS.gray} /> {item.userName}
                 </Text>
                 {item.userPhone ? (
-                  <Text style={styles.customerPhone}>
-                    <Ionicons name="call-outline" size={12} color={COLORS.gray} /> {item.userPhone}
-                  </Text>
+                  <TouchableOpacity style={styles.phoneRow} onPress={() => Linking.openURL(`tel:${item.userPhone}`)}>
+                    <Ionicons name="call" size={13} color="#fff" />
+                    <Text style={styles.phoneCallText}>Gọi {item.userPhone}</Text>
+                  </TouchableOpacity>
                 ) : null}
               </View>
               <View style={[styles.statusPill, { backgroundColor: (STATUS_COLOR[item.status] || '#999') + '20' }]}>
@@ -236,7 +237,8 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
   orderId: { fontSize: 15, fontWeight: 'bold', color: COLORS.dark },
   customerName: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-  customerPhone: { fontSize: 12, color: COLORS.primary, marginTop: 1 },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#4CAF50', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginTop: 4, alignSelf: 'flex-start', gap: 4 },
+  phoneCallText: { fontSize: 12, color: '#fff', fontWeight: '600' },
   statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusPillText: { fontSize: 12, fontWeight: 'bold' },
   foodShop: { fontSize: 11, color: '#7B1FA2', fontWeight: '600', marginTop: 1 },
