@@ -18,6 +18,19 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Tạo channel Android ngay khi module load (không chờ login)
+if (Platform.OS === 'android') {
+  Notifications.setNotificationChannelAsync('orders', {
+    name: 'Đơn hàng mới',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#FF6B35',
+    sound: 'notification',
+    enableVibrate: true,
+    showBadge: true,
+  }).catch(e => console.log('channel setup error:', e));
+}
+
 const DEFAULT_MENU = [
   {
     name: 'Cơm tấm sườn', price: 45000, category: 'Cơm',
@@ -263,45 +276,52 @@ export const AppProvider = ({ children }) => {
 
   // ── Thông báo ─────────────────────────────────────────────
   const sendLocalNotification = async (title, body) => {
-    await Notifications.scheduleNotificationAsync({
-      content: { title, body, sound: true },
-      trigger: null,
-    });
-  };
-
-  const registerForNotifications = async () => {
-    if (!Device.isDevice) return;
-    const { status: existing } = await Notifications.getPermissionsAsync();
-    let finalStatus = existing;
-    if (existing !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('orders', {
-        name: 'Đơn hàng mới',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF6B35',
-        sound: true,
-      });
-    }
-    return finalStatus === 'granted';
-  };
-
-  const savePushToken = async (userId, role) => {
-    if (!Device.isDevice) return;
     try {
-      const granted = await registerForNotifications();
-      if (!granted) return;
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title, body, sound: true,
+          ...(Platform.OS === 'android' ? { channelId: 'orders' } : {}),
+        },
+        trigger: null,
+      });
+    } catch (e) { console.log('sendLocalNotification error:', e); }
+  };
+
+const savePushToken = async (userId, role) => {
+    if (!Device.isDevice) { console.log('savePushToken: not a device, skip'); return; }
+    try {
+      const { status: existing } = await Notifications.getPermissionsAsync();
+      let finalStatus = existing;
+      if (existing !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        console.log('savePushToken: permission denied:', finalStatus);
+        return;
+      }
+      // Đảm bảo channel tồn tại trước khi lấy token
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('orders', {
+          name: 'Đơn hàng mới',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF6B35',
+          sound: 'notification',
+          enableVibrate: true,
+          showBadge: true,
+        });
+      }
       const tokenData = await Notifications.getExpoPushTokenAsync({ projectId: '3939fcd4-4f69-45c6-a408-b14d27010da9' });
+      console.log('savePushToken: got token:', tokenData?.data, 'role:', role);
       if (tokenData?.data) {
         await setDoc(doc(db, 'pushTokens', userId), {
           token: tokenData.data, userId, role,
           updatedAt: new Date().toISOString(),
         });
+        console.log('savePushToken: saved OK for', userId);
       }
-    } catch (e) { console.log('savePushToken error:', e); }
+    } catch (e) { console.log('savePushToken error:', e?.message || e); }
   };
 
   const sendPush = async (tokens, title, body) => {
