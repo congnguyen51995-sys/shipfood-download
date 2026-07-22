@@ -1627,13 +1627,16 @@ window.placeOrder=async function(){
       const sSnap=await getDocs(query(collection(db,'pushTokens'),where('role','==','shipper')));
       const shipperTokens=sSnap.docs.map(d=>d.data().token).filter(t=>t&&String(t).startsWith('ExponentPushToken'));
       const allTokens=[...adminTokens,...shipperTokens];
+      console.log('[push] tokens found:',allTokens.length,allTokens);
       if(allTokens.length){
-        await fetch('https://exp.host/--/api/v2/push/send',{
+        const pr=await fetch('https://exp.host/--/api/v2/push/send',{
           method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify(allTokens.map(to=>({to,title:'Don hang moi!',body:`${userName} - ${itemSummary} - ${amountStr}`,sound:'default',channelId:'orders'})))
         });
-      }
-    }catch(pe){console.log('push error',pe);}
+        const pj=await pr.json().catch(()=>null);
+        console.log('[push] response:',JSON.stringify(pj));
+      }else{console.log('[push] no tokens found - check pushTokens collection');}
+    }catch(pe){console.log('[push] error:',pe);}
     cart=[];updateCartBadge();showToast('Đặt hàng thành công! 🎉');
     await loadGlobal();showPg('orders');
   }catch(e){showToast('Lỗi đặt hàng: '+e.message);if(btn){btn.disabled=false;btn.textContent=`Đặt hàng • ${fmt(total)}`;}}
