@@ -220,24 +220,47 @@ export const AppProvider = ({ children }) => {
         const customer = newest.customerName || newest.userName || 'Khách';
         if (newest.status === 'Chờ shop' && role === 'shop') {
           sendLocalNotification(
-            '📦 Đơn mới cần xác nhận!',
-            `${customer} đặt ${itemCount} món • ${amount} — Nhận hoặc từ chối ngay`
+            'Don moi can xac nhan!',
+            `${customer} dat ${itemCount} mon - ${amount} - Nhan hoac tu choi ngay`
           );
         } else if (role === 'admin') {
           sendLocalNotification(
-            '🛵 Đơn hàng mới!',
-            `${customer} vừa đặt ${itemCount} món • ${amount}`
+            'Don hang moi!',
+            `${customer} vua dat ${itemCount} mon - ${amount}`
           );
         } else if (role === 'shipper' && newest.status === 'Đã xác nhận') {
           sendLocalNotification(
-            '🛵 Có đơn mới!',
-            `${customer} • ${amount} — Nhận đơn ngay`
+            'Co don moi!',
+            `${customer} - ${amount} - Nhan don ngay`
           );
         }
       }
       prevOrderCount.current = orders.length;
       isFirstLoad.current = false;
     });
+    return () => unsub();
+  }, []);
+
+  // ── Xử lý push queue từ web (tránh CORS) ─────────────────
+  useEffect(() => {
+    const unsub = onSnapshot(
+      query(collection(db, 'orderPushQueue'), where('status', '==', 'pending')),
+      async (snapshot) => {
+        if (currentUserRoleRef.current !== 'admin') return;
+        for (const change of snapshot.docChanges()) {
+          if (change.type !== 'added') continue;
+          const item = { id: change.doc.id, ...change.doc.data() };
+          try {
+            await updateDoc(doc(db, 'orderPushQueue', item.id), { status: 'processing' });
+            const roles = item.roles || ['admin', 'shipper'];
+            const tokenArrays = await Promise.all(roles.map(r => getTokensByRole(r)));
+            const tokens = tokenArrays.flat();
+            if (tokens.length) await sendPush(tokens, item.title, item.body);
+            await updateDoc(doc(db, 'orderPushQueue', item.id), { status: 'done' });
+          } catch (e) { console.log('pushQueue error:', e); }
+        }
+      }
+    );
     return () => unsub();
   }, []);
 
@@ -481,14 +504,14 @@ const savePushToken = async (userId, role) => {
       orderData.shopId ? getShopPushToken(orderData.shopId) : Promise.resolve(null),
     ]);
     if (orderData.shopId) {
-      await sendPush(adminTokens, '📦 Đơn mới (qua quán)', `${userName} · ${itemSummary} · ${amountStr}`);
-      if (shopToken) await sendPush([shopToken], '📦 Đơn mới cần xác nhận!', `${userName} · ${itemSummary} · ${amountStr}`);
+      await sendPush(adminTokens, 'Don moi (qua quan)', `${userName} - ${itemSummary} - ${amountStr}`);
+      if (shopToken) await sendPush([shopToken], 'Don moi can xac nhan!', `${userName} - ${itemSummary} - ${amountStr}`);
     } else {
-      await sendPush([...adminTokens, ...shipperTokens], '📦 Đơn hàng mới!', `${userName} · ${itemSummary} · ${amountStr}`);
+      await sendPush([...adminTokens, ...shipperTokens], 'Don hang moi!', `${userName} - ${itemSummary} - ${amountStr}`);
     }
 
     if (paymentMethod === 'transfer' && adminTokens.length) {
-      await sendPush(adminTokens, '💳 Đơn chuyển khoản mới!', `${userName} · ${amountStr} · chờ xác nhận thanh toán`);
+      await sendPush(adminTokens, 'Don chuyen khoan moi!', `${userName} - ${amountStr} - cho xac nhan thanh toan`);
     }
 
     return { id: docRef.id, ...orderData };
@@ -498,12 +521,12 @@ const savePushToken = async (userId, role) => {
     await updateDoc(doc(db, 'orders', orderId), { status });
     if (status === 'Đã giao' && order?.userId) {
       const customerToken = await getPushToken(order.userId);
-      if (customerToken) await sendPush([customerToken], '✅ Đơn hàng đã giao!', 'Đơn hàng của bạn đã được giao thành công. Cảm ơn bạn!');
+      if (customerToken) await sendPush([customerToken], 'Don hang da giao!', 'Don hang cua ban da duoc giao thanh cong. Cam on ban!');
       await saveNotification(order.userId, '✅ Đơn hàng đã giao!', 'Đơn hàng của bạn đã được giao thành công. Cảm ơn bạn!');
     }
     if (status === 'Đang giao' && order?.userId) {
       const customerToken = await getPushToken(order.userId);
-      if (customerToken) await sendPush([customerToken], '🛵 Shipper đang giao hàng!', 'Đơn hàng đang trên đường đến bạn');
+      if (customerToken) await sendPush([customerToken], 'Shipper dang giao hang!', 'Don hang dang tren duong den ban');
       await saveNotification(order.userId, '🛵 Shipper đang giao hàng!', 'Đơn hàng đang trên đường đến bạn');
     }
   };
@@ -512,7 +535,7 @@ const savePushToken = async (userId, role) => {
     await updateDoc(doc(db, 'orders', orderId), { status: 'Đã hủy', cancelReason: reason });
     if (order?.userId) {
       const customerToken = await getPushToken(order.userId);
-      if (customerToken) await sendPush([customerToken], '❌ Đơn bị hủy', `Lý do: ${reason || 'Quán không thể phục vụ'}`);
+      if (customerToken) await sendPush([customerToken], 'Don bi huy', `Ly do: ${reason || 'Quan khong the phuc vu'}`);
       await saveNotification(order.userId, '❌ Đơn bị hủy', `Lý do: ${reason || 'Quán không thể phục vụ'}`);
     }
   };
@@ -524,8 +547,8 @@ const savePushToken = async (userId, role) => {
         getTokensByRole('shipper'),
         order?.userId ? getPushToken(order.userId) : Promise.resolve(null),
       ]);
-      await sendPush(shipperTokens, '🛵 Có đơn mới cần giao!', 'Quán đã xác nhận — vào app nhận đơn ngay');
-      if (customerToken) await sendPush([customerToken], '✅ Quán đã xác nhận!', 'Đơn của bạn đã được xác nhận, đang chờ shipper');
+      await sendPush(shipperTokens, 'Co don moi can giao!', 'Quan da xac nhan - vao app nhan don ngay');
+      if (customerToken) await sendPush([customerToken], 'Quan da xac nhan!', 'Don cua ban da duoc xac nhan, dang cho shipper');
       if (order?.userId) await saveNotification(order.userId, '✅ Quán đã xác nhận!', 'Đơn của bạn đã được xác nhận, đang chờ shipper');
     } catch (e) {
       const { Alert } = require('react-native');
@@ -549,7 +572,7 @@ const savePushToken = async (userId, role) => {
     });
     if (order?.userId) {
       const customerToken = await getPushToken(order.userId);
-      if (customerToken) await sendPush([customerToken], '🛵 Shipper đang đến lấy hàng!', `${shipperName} đang trên đường lấy đơn của bạn`);
+      if (customerToken) await sendPush([customerToken], 'Shipper dang den lay hang!', `${shipperName} dang tren duong lay don cua ban`);
       await saveNotification(order.userId, '🛵 Shipper đang đến lấy hàng!', `${shipperName} đang trên đường lấy đơn của bạn`);
     }
   };
@@ -667,7 +690,7 @@ const savePushToken = async (userId, role) => {
     if (!order?.userId) return;
     const token = await getPushToken(order.userId);
     if (token) {
-      await sendPush([token], '🛵 Shipper đang đến gần!', `${order.shipperName || 'Shipper'} sắp đến nơi, vui lòng ra nhận hàng`);
+      await sendPush([token], 'Shipper dang den gan!', `${order.shipperName || 'Shipper'} sap den noi, vui long ra nhan hang`);
       await saveNotification(order.userId, '🛵 Shipper đang đến gần!', `${order.shipperName || 'Shipper'} sắp đến nơi, vui lòng ra nhận hàng`);
     }
   };
@@ -717,7 +740,7 @@ const savePushToken = async (userId, role) => {
     await updateDoc(doc(db, 'orders', orderId), { status: 'Đã hủy', cancelReason: 'Khách hủy đơn' });
     if (order?.userId) {
       const adminTokens = await getTokensByRole('admin');
-      if (adminTokens.length) await sendPush(adminTokens, '❌ Khách hủy đơn', `${order.userName || 'Khách'} đã hủy đơn hàng`);
+      if (adminTokens.length) await sendPush(adminTokens, 'Khach huy don', `${order.userName || 'Khach'} da huy don hang`);
     }
   };
 
