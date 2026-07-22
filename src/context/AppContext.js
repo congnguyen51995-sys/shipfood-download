@@ -18,18 +18,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Tạo channel Android ngay khi module load (không chờ login)
-if (Platform.OS === 'android') {
-  Notifications.setNotificationChannelAsync('orders', {
-    name: 'Đơn hàng mới',
-    importance: Notifications.AndroidImportance.MAX,
-    vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#FF6B35',
-    sound: 'notification',
-    enableVibrate: true,
-    showBadge: true,
-  }).catch(e => console.log('channel setup error:', e));
-}
 
 const DEFAULT_MENU = [
   {
