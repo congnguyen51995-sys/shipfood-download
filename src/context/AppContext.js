@@ -295,7 +295,6 @@ const savePushToken = async (userId, role) => {
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#FF6B35',
-          sound: 'notification',
           enableVibrate: true,
           showBadge: true,
         });
@@ -798,7 +797,7 @@ const savePushToken = async (userId, role) => {
   return (
     <AppContext.Provider value={{
       menuItems, menuLoaded, restaurantInfo, allOrders,
-      setRestaurantInfo, setRestaurantInfoState, registerForNotifications, setCurrentUserRole,
+      setRestaurantInfo, setRestaurantInfoState, setCurrentUserRole,
       addMenuItem, updateMenuItem, deleteMenuItem, refreshMenuItems,
       savePushToken,
       getCart, addToCart, removeFromCart, clearCart,
