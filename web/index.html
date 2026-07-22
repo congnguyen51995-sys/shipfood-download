@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>ShipFood - Giao đồ ăn nhanh</title>
-<link rel="icon" type="image/png" href="../assets/icon.png">
-<link rel="apple-touch-icon" href="../assets/icon.png">
+<link rel="icon" type="image/png" href="./icon.png">
+<link rel="apple-touch-icon" href="./icon.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 :root{--primary:#FF6B35;--pd:#e55a25;--bg:#F5F5F5;--white:#fff;--gray:#888;--border:#EEEEEE;--text:#1A1A1A;--red:#E53935;--green:#43A047;--blue:#1976D2;--orange:#F57C00;--purple:#7B1FA2;--teal:#00838F}
@@ -432,7 +432,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;mar
 
 <!-- AUTH MODAL -->
 <div id="authBg" class="auth-bg" style="display:none" onclick="closeAuthIfBackdrop(event)">
-  <img src="../assets/icon.png" style="width:110px;height:110px;border-radius:24px;object-fit:cover;margin-bottom:10px;box-shadow:0 4px 20px rgba(0,0,0,.25)" alt="ShipFood" />
+  <img src="./icon.png" style="width:110px;height:110px;border-radius:24px;object-fit:cover;margin-bottom:10px;box-shadow:0 4px 20px rgba(0,0,0,.25)" alt="ShipFood" />
   <div class="auth-tagline" style="font-size:14px;margin-bottom:24px">Giao đồ ăn nhanh – Đặt món tiện lợi</div>
   <div class="auth-card">
     <div class="auth-tab">
@@ -487,7 +487,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;mar
 <!-- DESKTOP SIDEBAR -->
 <div id="sidebar" style="display:none">
   <div class="sb-brand">
-    <img class="sb-logo" src="../assets/icon.png" alt="logo"/>
+    <img class="sb-logo" src="./icon.png" alt="logo"/>
     <div><div class="sb-name">ShipFood</div><div class="sb-tagline">Giao đồ ăn nhanh</div></div>
   </div>
   <div class="sb-user" id="sbUser" style="display:none">
@@ -506,7 +506,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;mar
 
 <!-- TOP BAR -->
 <div class="topbar" id="topbar" style="display:none">
-  <img src="../assets/icon.png" style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0" alt="logo" />
+  <img src="./icon.png" style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0" alt="logo" />
   <div>
     <div class="topbar-title" id="topTitle">ShipFood</div>
     <div class="topbar-sub" id="topSub"></div>
@@ -639,7 +639,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;mar
 <!-- APP DOWNLOAD BANNER -->
 <div class="app-banner" id="appBanner" style="display:none">
   <div class="app-banner-inner">
-    <img class="app-banner-img" src="./icon.png" alt="ShipFood" onerror="this.src='../assets/icon.png'"/>
+    <img class="app-banner-img" src="./icon.png" alt="ShipFood" onerror="this.src='./icon.png'"/>
     <div class="app-banner-text">
       <div class="app-banner-title">📱 Tải app ShipFood</div>
       <div class="app-banner-sub">Đặt món nhanh hơn · Theo dõi đơn thời gian thực · Thông báo khi giao hàng</div>
@@ -862,8 +862,8 @@ async function setupOrderNotifications(){
         if(Notification.permission==='granted'){
           new Notification('🛵 ShipFood – Đơn hàng mới!',{
             body:`${customer} vừa đặt ${items} món • ${amount}`,
-            icon:'../assets/icon.png',
-            badge:'../assets/icon.png',
+            icon:'./icon.png',
+            badge:'./icon.png',
             tag:'new-order',
           });
         }
@@ -1608,7 +1608,11 @@ window.placeOrder=async function(){
   const total=sub+ship;
 
   try{
+    const itemSummary=cart.map(i=>`${i.name}x${i.qty}`).join(', ').slice(0,60);
+    const amountStr=fmt(total);
+    const userName=user.name||'Khach';
     await addDoc(collection(db,'orders'),{
+      userId:user.id,userName,userPhone:user.phone||'',
       customerId:user.id,customerName:user.name,customerPhone:user.phone||'',
       items:cart.map(i=>({id:i.id,name:i.name,price:i.price,qty:i.qty,emoji:i.emoji||'',shopId:i.shopId||'',toppings:i.toppings||[]})),
       totalAmount:total,shipFee:ship,shipDetail,
@@ -1616,6 +1620,20 @@ window.placeOrder=async function(){
       ...(cust?{deliveryLocation:cust}:{}),
       status:'Chờ xác nhận',createdAt:new Date().toISOString()
     });
+    // Gửi push notification cho admin/shipper
+    try{
+      const tSnap=await getDocs(query(collection(db,'pushTokens'),where('role','==','admin')));
+      const adminTokens=tSnap.docs.map(d=>d.data().token).filter(t=>t&&String(t).startsWith('ExponentPushToken'));
+      const sSnap=await getDocs(query(collection(db,'pushTokens'),where('role','==','shipper')));
+      const shipperTokens=sSnap.docs.map(d=>d.data().token).filter(t=>t&&String(t).startsWith('ExponentPushToken'));
+      const allTokens=[...adminTokens,...shipperTokens];
+      if(allTokens.length){
+        await fetch('https://exp.host/--/api/v2/push/send',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(allTokens.map(to=>({to,title:'Don hang moi!',body:`${userName} - ${itemSummary} - ${amountStr}`,sound:'default',channelId:'orders'})))
+        });
+      }
+    }catch(pe){console.log('push error',pe);}
     cart=[];updateCartBadge();showToast('Đặt hàng thành công! 🎉');
     await loadGlobal();showPg('orders');
   }catch(e){showToast('Lỗi đặt hàng: '+e.message);if(btn){btn.disabled=false;btn.textContent=`Đặt hàng • ${fmt(total)}`;}}
@@ -2786,7 +2804,7 @@ async function renderLanding(){
       <div style="background:var(--primary);padding:16px 16px 14px;position:sticky;top:0;z-index:50">
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div style="display:flex;align-items:center;gap:10px">
-            <img src="../assets/icon.png" style="width:36px;height:36px;border-radius:10px;object-fit:cover"/>
+            <img src="./icon.png" style="width:36px;height:36px;border-radius:10px;object-fit:cover"/>
             <div>
               <div style="font-size:17px;font-weight:800;color:#fff">🛵 ShipFood</div>
               <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
@@ -2894,7 +2912,7 @@ async function renderLanding(){
         <!-- App banner -->
         <div style="margin:16px 12px 8px;border-radius:20px;overflow:hidden">
           <div style="background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:18px;display:flex;align-items:center;gap:14px">
-            <img src="../assets/icon.png" style="width:56px;height:56px;border-radius:14px;object-fit:cover;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,.4)"/>
+            <img src="./icon.png" style="width:56px;height:56px;border-radius:14px;object-fit:cover;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,.4)"/>
             <div style="flex:1;min-width:0">
               <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:3px">📱 Tải app ShipFood – Mượt mà hơn!</div>
               <div style="font-size:11px;color:rgba(255,255,255,.65);margin-bottom:5px;line-height:1.4">Nhận thông báo đơn hàng · Theo dõi shipper · Đặt món nhanh hơn</div>
@@ -2917,7 +2935,7 @@ async function renderLanding(){
         </div>
 
         <div style="background:var(--text);margin-top:24px;padding:24px 20px;display:flex;align-items:center;gap:14px">
-          <img src="../assets/icon.png" style="width:36px;height:36px;border-radius:10px;object-fit:cover" alt="logo"/>
+          <img src="./icon.png" style="width:36px;height:36px;border-radius:10px;object-fit:cover" alt="logo"/>
           <div>
             <div style="font-size:15px;font-weight:800;color:#fff">ShipFood Tiên Lục</div>
             <div style="font-size:12px;opacity:.7;margin-top:2px;color:#fff">© 2026 · Giao đồ ăn nhanh tại Tiên Lục – Bắc Ninh</div>
