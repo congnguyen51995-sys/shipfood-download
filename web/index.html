@@ -811,6 +811,16 @@ async function enterApp(){
 let shopUsers={};// shopId → user doc (with location)
 let _orderListener=null;// Firestore unsubscribe for order notifications
 let _prevOrderCount=-1;// -1 = not yet initialized
+let _titleFlashInterval=null;
+function _startTitleFlash(msg){
+  if(_titleFlashInterval)clearInterval(_titleFlashInterval);
+  const orig=document.title;let on=true;
+  _titleFlashInterval=setInterval(()=>{document.title=on?msg:orig;on=!on;},900);
+  // dừng sau 30s hoặc khi tab focus lại
+  const stop=()=>{clearInterval(_titleFlashInterval);_titleFlashInterval=null;document.title=orig;};
+  setTimeout(stop,30000);
+  window.addEventListener('focus',stop,{once:true});
+}
 
 // ── WEB PUSH NOTIFICATIONS ───────────────────────────────
 async function setupOrderNotifications(){
@@ -842,8 +852,12 @@ async function setupOrderNotifications(){
         const customer=newest.userName||newest.customerName||'Khách';
         const items=newest.items?.length||0;
         const amount=new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format((newest.total||newest.totalAmount||0)+(newest.shippingFee||0));
+        // Âm thanh thông báo
+        try{const a=new Audio('../assets/notification.mp3');a.volume=1;a.play().catch(()=>{});}catch(e){}
+        // Nhấp nháy title tab
+        _startTitleFlash('🔔 Đơn mới!');
         // In-app toast
-        showToast(`🛵 Đơn mới từ ${customer} • ${items} món • ${amount}`);
+        showToast(`🛵 Đơn mới từ ${customer} • ${items} món • ${amount}`,6000);
         // Browser notification
         if(Notification.permission==='granted'){
           new Notification('🛵 ShipFood – Đơn hàng mới!',{
@@ -993,9 +1007,9 @@ window.goCart=function(){showPg('cart');};
 window.reload=async function(){await loadGlobal();const cur=document.querySelector('.pg.on');if(cur)showPg(cur.id.replace('pg-',''));};
 
 // ── TOAST ────────────────────────────────
-window.showToast=function(msg){
+window.showToast=function(msg,duration=2500){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');
-  setTimeout(()=>t.classList.remove('on'),2500);
+  setTimeout(()=>t.classList.remove('on'),duration);
 };
 
 // ── AUTH ─────────────────────────────────
